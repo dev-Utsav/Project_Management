@@ -1,0 +1,56 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --agency-bg: 14 15 17;
+  --agency-sidebar: 20 21 24;
+  --agency-card: 26 27 31;
+  --agency-border: 44 45 51;
+  --agency-accent: 94 106 210;
+
+  --gray-100: 243 244 246;
+  --gray-200: 229 231 235;
+  --gray-300: 209 213 219;
+  --gray-400: 156 163 175;
+  --gray-500: 107 114 128;
+  --gray-600: 75 85 99;
+  --gray-700: 55 65 81;
+  --gray-800: 31 41 55;
+  --gray-900: 17 24 39;
+}
+
+ 
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+ 
+body {
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: rgb(var(--agency-bg));
+  color: rgb(var(--gray-200));
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+}
+ 
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+ 
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+ 
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--agency-border));
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--agency-accent));
+}
+ 
