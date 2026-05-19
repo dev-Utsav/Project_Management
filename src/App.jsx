@@ -19,10 +19,16 @@ export default function App() {
   const [timesheets, setTimesheets] = useState([])
   const [team, setTeam] = useState([])
   const [loading, setLoading] = useState(true)
+  const [selectedProjectId, setSelectedProjectId] = useState(null)
 
   useEffect(() => {
     fetchAll()
   }, [])
+
+  const navigateToProject = (id) => {
+    setSelectedProjectId(id)
+    setActivePage('setup')
+  }
 
   async function fetchAll() {
     setLoading(true)
@@ -144,7 +150,7 @@ export default function App() {
   const renderPage = () => {
     switch (activePage) {
       case 'dashboard':
-        return <Dashboard project={project} tasks={tasks} timesheets={timesheets} />
+        return <Dashboard onNavigateToProject={navigateToProject} />
       case 'timesheet':
         return <Timesheet timesheets={timesheets} team={team} onRefresh={fetchAll} />
       // case 'health':
@@ -156,9 +162,9 @@ export default function App() {
       case 'openpoints':
         return <OpenPoints />
       case 'setup':
-        return <ProjectSetup />
+        return <ProjectSetup selectedProjectId={selectedProjectId} onClearProject={() => setSelectedProjectId(null)} />
       case 'workboard':
-  return <WorkBoard />
+        return <WorkBoard />
       default:
         return <Dashboard project={project} tasks={tasks} timesheets={timesheets} />
     }

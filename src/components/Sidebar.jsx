@@ -1,7 +1,38 @@
 import { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 
 export default function Sidebar({ activePage, setActivePage, project, width, setWidth }) {
   const [isResizing, setIsResizing] = useState(false);
+  const [openPointsCount, setOpenPointsCount] = useState(0);
+
+  useEffect(() => {
+    async function fetchOpenPointsCount() {
+      const { count, error } = await supabase
+        .from('open_points')
+        .select('*', { count: 'exact', head: true })
+        .eq('project_id', 1)
+        .eq('status', 'open');
+      
+      if (!error && count !== null) {
+        setOpenPointsCount(count);
+      }
+    }
+
+    fetchOpenPointsCount();
+
+    const channel = supabase
+      .channel('open_points_sidebar_changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'open_points' },
+        () => fetchOpenPointsCount()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   useEffect(() => {
     const handleMouseMove = (e) => {
@@ -33,8 +64,8 @@ export default function Sidebar({ activePage, setActivePage, project, width, set
     // { id: 'health', label: 'Health Board', icon: '🏥', badge: 3 },
     { id: 'capacity', label: 'Capacity', icon: '👥' },
     { id: 'documents', label: 'Document Hub', icon: '📄' },
-    { id: 'openpoints', label: 'Open Points', icon: '📌', badge: 6 },
-    { id: 'setup', label: 'Project Setup', icon: '⚙️' },
+    { id: 'openpoints', label: 'Open Points', icon: '📌', badge: openPointsCount > 0 ? openPointsCount : null },
+    { id: 'setup', label: 'Projects', icon: '📂' },
     { id: 'workboard', label: 'Workboard', icon: '📋' },
   ]
 
