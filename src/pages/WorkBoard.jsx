@@ -39,17 +39,9 @@ function timeAgo(ts) {
 }
 function greet() { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening' }
 
-// ─── Avatar ───────────────────────────────────────────────────────────────────
-function Av({ name, size = 7 }) {
-  return (
-    <div className={`w-${size} h-${size} rounded-lg flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0`}
-      style={{ backgroundColor: ac(name) }} title={name}>{ini(name)}</div>
-  )
-}
-
 function PriorityDot({ priority }) {
   const cfg = PRIORITY_CFG[priority] || PRIORITY_CFG['Medium']
-  return <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: cfg.color }} title={priority} />
+  return <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 shadow-[0_0_8px_currentColor]" style={{ color: cfg.color, backgroundColor: cfg.color }} title={priority} />
 }
 
 // ─── Quick Log Time Modal ─────────────────────────────────────────────────────
@@ -76,8 +68,8 @@ function QuickLogModal({ task, memberName, onClose, onLogged }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="bg-[#0f1117] border border-agency-border rounded-2xl w-full max-w-sm shadow-2xl p-5 flex flex-col gap-4">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-[fadeIn_0.2s_ease]">
+      <div className="bg-[#0f1117] border border-agency-border rounded-2xl w-full max-w-sm shadow-2xl p-6 flex flex-col gap-4 animate-[slideUp_0.3s_ease]">
         <div>
           <h3 className="text-sm font-bold text-white">Log Time</h3>
           <p className="text-xs text-gray-500 mt-1 line-clamp-1">{task.title}</p>
@@ -96,10 +88,10 @@ function QuickLogModal({ task, memberName, onClose, onLogged }) {
         </div>
 
         <div className="flex gap-2 pt-2">
-          <button onClick={handleSave} disabled={saving || !hours} className="flex-1 bg-agency-accent hover:bg-blue-500 disabled:opacity-50 text-white text-xs font-bold py-2 rounded-lg transition-colors">
+          <button onClick={handleSave} disabled={saving || !hours} className="flex-1 bg-agency-accent hover:bg-blue-500 disabled:opacity-50 text-white text-xs font-bold py-2.5 rounded-lg transition-colors">
             {saving ? 'Logging...' : 'Log Time'}
           </button>
-          <button onClick={onClose} className="px-4 bg-agency-bg border border-agency-border text-gray-400 hover:text-white text-xs font-bold py-2 rounded-lg transition-colors">
+          <button onClick={onClose} className="px-5 bg-agency-bg border border-agency-border text-gray-400 hover:text-white text-xs font-bold py-2.5 rounded-lg transition-colors">
             Cancel
           </button>
         </div>
@@ -108,102 +100,217 @@ function QuickLogModal({ task, memberName, onClose, onLogged }) {
   )
 }
 
-// ─── Task Card ────────────────────────────────────────────────────────────────
-function MemberTaskCard({ task, expanded, comments, commentText, posting, updating, onToggle, onStatusChange, onCommentChange, onPostComment, onLogTime }) {
+// ─── Task Card (Compact Board View) ───────────────────────────────────────────
+function MemberTaskCard({ task, onOpen }) {
   const scfg = STATUS_CFG[task.status] || STATUS_CFG['To Do']
   const d    = dl(task.due_date)
   const isDone = task.status === 'Done'
 
   return (
-    <div className={`border rounded-2xl overflow-hidden transition-all duration-200 ${
-      task.status === 'Blocked'     ? 'border-red-500/30 bg-red-500/5' :
-      task.status === 'In Progress' ? 'border-blue-500/20 bg-blue-500/5' :
+    <div onClick={onOpen} className={`border rounded-2xl overflow-hidden cursor-pointer shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 ${
+      task.status === 'Blocked'     ? 'border-red-500/30 bg-red-500/5 hover:border-red-500/50' :
+      task.status === 'In Progress' ? 'border-blue-500/20 bg-blue-500/5 hover:border-blue-500/50' :
       isDone                        ? 'border-agency-border/40 bg-agency-card/30' :
-      'border-agency-border bg-agency-card'
+      'border-agency-border bg-agency-card hover:border-agency-accent/50 hover:bg-agency-bg/50'
     }`}>
-      {/* collapsed header */}
-      <button onClick={onToggle} className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-white/5 transition-colors">
-        <PriorityDot priority={task.priority} />
-
-        <div className="flex-1 min-w-0">
-          <p className={`text-sm font-medium leading-snug ${isDone ? 'line-through text-gray-500' : 'text-white'}`}>
-            {task.title}
-          </p>
-          <p className="text-[10px] text-gray-500 mt-0.5 truncate">{task.projectName} {task.epic && `· ${task.epic}`}</p>
-        </div>
-
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {task.due_date && !isDone && (
-            <span className={`text-[10px] font-medium ${d !== null && d < 0 ? 'text-red-400' : d !== null && d <= 3 ? 'text-yellow-400' : 'text-gray-600'}`}>
-              {d !== null ? (d < 0 ? `${Math.abs(d)}d overdue` : d === 0 ? 'Due today' : `Due in ${d}d`) : fdate(task.due_date)}
-            </span>
-          )}
-          {task.estimated_hours && (
-            <span className="text-[10px] text-gray-600 font-bold">{task.estimated_hours}h</span>
-          )}
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium"
+      <div className="w-full flex flex-col gap-2 p-4 text-left">
+        <div className="flex items-start justify-between gap-2">
+          <PriorityDot priority={task.priority} />
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest"
             style={{ backgroundColor: scfg.light, color: scfg.color }}>
             {task.status}
           </span>
-          <span className="text-gray-600 text-xs ml-1">{expanded ? '▲' : '▼'}</span>
         </div>
-      </button>
 
-      {/* expanded content */}
-      {expanded && (
-        <div className="border-t border-agency-border/40 px-4 pb-4 pt-3 space-y-4">
-          <div className="flex justify-between items-start gap-4">
-            <div className="flex-1">
-              <p className="text-[10px] text-gray-600 uppercase tracking-widest font-bold mb-1">Description</p>
-              <p className="text-xs text-gray-400 leading-relaxed whitespace-pre-wrap">{task.description || <span className="italic">No description</span>}</p>
+        <div className="min-w-0 mt-1">
+          <p className={`text-sm font-bold leading-snug line-clamp-2 ${isDone ? 'line-through text-gray-500' : 'text-white'}`}>
+            {task.title}
+          </p>
+          <p className="text-[10px] text-gray-500 mt-1 truncate">{task.projectName} {task.epic && `· ${task.epic}`}</p>
+        </div>
+
+        <div className="flex items-center justify-between mt-2 pt-3 border-t border-agency-border/50">
+          {task.due_date && !isDone ? (
+            <span className={`text-[10px] font-bold ${d !== null && d < 0 ? 'text-red-400' : d !== null && d <= 3 ? 'text-yellow-400' : 'text-gray-500'}`}>
+              {d !== null ? (d < 0 ? `${Math.abs(d)}d overdue` : d === 0 ? 'Due today' : `Due in ${d}d`) : fdate(task.due_date)}
+            </span>
+          ) : <span className="text-[10px] text-gray-600 font-medium italic">{isDone ? 'Completed' : 'No date'}</span>}
+          {task.estimated_hours && (
+            <span className="text-[10px] text-gray-400 font-bold bg-agency-bg border border-agency-border px-1.5 py-0.5 rounded">{task.estimated_hours}h</span>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Task Detail Modal (Expanded View) ────────────────────────────────────────
+function TaskDetailModal({ task, comments, onUpdateStatus, onPostComment, onLogTime, onClose }) {
+  const [activeTab, setActiveTab] = useState('overview')
+  const [commentText, setCommentText] = useState('')
+  const [statusUpdating, setStatusUpdating] = useState(false)
+  const [commentPosting, setCommentPosting] = useState(false)
+  const isDone = task.status === 'Done'
+
+  async function handleStatus(s) {
+    setStatusUpdating(true)
+    await onUpdateStatus(task.id, s)
+    setStatusUpdating(false)
+  }
+
+  async function handleComment() {
+    if (!commentText.trim()) return
+    setCommentPosting(true)
+    await onPostComment(task.id, commentText)
+    setCommentText('')
+    setCommentPosting(false)
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-[fadeIn_0.2s_ease]">
+      <div className="bg-agency-card border border-agency-border rounded-2xl w-full max-w-3xl max-h-[90vh] shadow-2xl flex flex-col overflow-hidden animate-[slideUp_0.3s_ease]">
+        
+        {/* Header */}
+        <div className="px-6 py-5 border-b border-agency-border flex justify-between items-start gap-4 bg-agency-bg/50">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 mb-2">
+              <PriorityDot priority={task.priority} />
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{task.projectName}</span>
+              {task.epic && <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest px-2 py-0.5 bg-agency-border/30 rounded">EPIC: {task.epic}</span>}
             </div>
-            <button onClick={onLogTime} className="flex-shrink-0 px-3 py-1.5 bg-agency-bg border border-agency-border hover:border-agency-accent/50 text-xs text-white font-bold rounded-lg transition-all flex items-center gap-1.5 shadow-sm">
-              <span className="text-agency-accent">⏱</span> Log Time
-            </button>
+            <h2 className={`text-xl font-extrabold leading-tight ${isDone ? 'text-gray-500 line-through' : 'text-white'}`}>{task.title}</h2>
           </div>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-agency-border/50 text-gray-400 hover:text-white hover:bg-agency-border transition-all flex-shrink-0">✕</button>
+        </div>
 
-          {!isDone && (
-            <div>
-              <p className="text-[10px] text-gray-600 uppercase tracking-widest font-bold mb-2">Update Status</p>
-              <div className="flex flex-wrap gap-1.5">
-                {STATUSES.filter(s => s !== task.status).map(s => (
-                  <button key={s} onClick={() => onStatusChange(s)} disabled={updating}
-                    className="px-3 py-1.5 text-[11px] font-bold rounded-xl border border-agency-border text-gray-400 hover:text-white hover:border-gray-500 transition-all disabled:opacity-50">
-                    {updating ? '…' : `→ ${s}`}
+        {/* Tabs */}
+        <div className="flex border-b border-agency-border px-6 bg-agency-bg/50 gap-8 overflow-x-auto">
+          {['overview', 'status', 'comments', 'log time', 'issues'].map(t => (
+            <button key={t} onClick={() => setActiveTab(t)}
+              className={`py-4 text-[11px] font-bold uppercase tracking-widest border-b-2 transition-all whitespace-nowrap ${activeTab === t ? 'border-agency-accent text-agency-accent' : 'border-transparent text-gray-500 hover:text-gray-300'}`}>
+              {t} {t === 'comments' && `(${comments.length})`}
+            </button>
+          ))}
+        </div>
+
+        {/* Content Area */}
+        <div className="flex-1 overflow-y-auto p-6 bg-[#0f1117]">
+          
+          {activeTab === 'overview' && (
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Description</h3>
+                <div className="bg-agency-bg border border-agency-border rounded-xl p-5 min-h-[120px]">
+                  <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">{task.description || <span className="italic text-gray-600">No description provided. Please update the task to add acceptance criteria.</span>}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-agency-bg border border-agency-border rounded-xl p-4">
+                  <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-widest">Due Date</p>
+                  <p className="text-sm font-bold text-white">{fdate(task.due_date)}</p>
+                </div>
+                <div className="bg-agency-bg border border-agency-border rounded-xl p-4">
+                  <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-widest">Est. Time</p>
+                  <p className="text-sm font-bold text-white">{task.estimated_hours ? `${task.estimated_hours} h` : 'Not set'}</p>
+                </div>
+                <div className="bg-agency-bg border border-agency-border rounded-xl p-4">
+                  <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-widest">Priority</p>
+                  <p className="text-sm font-bold text-white flex items-center gap-1.5"><PriorityDot priority={task.priority} /> {task.priority}</p>
+                </div>
+                <div className="bg-agency-bg border border-agency-border rounded-xl p-4">
+                  <p className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-widest">Status</p>
+                  <p className="text-sm font-bold text-white">{task.status}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'status' && (
+            <div className="max-w-md mx-auto">
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4 text-center">Update Task Status</h3>
+              <div className="flex flex-col gap-3">
+                {STATUSES.map(s => (
+                  <button key={s} onClick={() => handleStatus(s)} disabled={statusUpdating || task.status === s}
+                    className={`flex items-center justify-between p-4 rounded-xl border transition-all ${
+                      task.status === s ? 'bg-agency-accent/10 border-agency-accent text-agency-accent cursor-default shadow-[0_0_15px_rgba(59,130,246,0.15)]' : 
+                      'bg-agency-bg border-agency-border text-gray-400 hover:border-agency-accent hover:text-white'
+                    }`}>
+                    <span className="font-bold">{s}</span>
+                    {task.status === s && <span className="text-xs font-bold uppercase tracking-widest">Current</span>}
                   </button>
                 ))}
               </div>
             </div>
           )}
 
-          <div>
-            <p className="text-[10px] text-gray-600 uppercase tracking-widest font-bold mb-2">Comments ({comments.length})</p>
-            {comments.length > 0 && (
-              <div className="space-y-2 mb-3">
-                {comments.map(c => (
-                  <div key={c.id} className="bg-agency-bg rounded-xl p-3 border border-agency-border">
-                    <div className="flex justify-between mb-1">
-                      <span className="text-[11px] font-bold text-white">{c.author}</span>
-                      <span className="text-[10px] text-gray-500">{timeAgo(c.created_at)}</span>
-                    </div>
-                    <p className="text-[11px] text-gray-400 leading-relaxed">{c.content}</p>
+          {activeTab === 'comments' && (
+            <div className="flex flex-col h-full">
+              <div className="flex-1 space-y-4 mb-6">
+                {comments.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-10 opacity-50">
+                    <p className="text-3xl mb-2">💬</p>
+                    <p className="text-sm font-bold text-gray-400">No comments yet</p>
                   </div>
-                ))}
+                ) : (
+                  comments.map(c => (
+                    <div key={c.id} className="bg-agency-bg rounded-xl p-4 border border-agency-border">
+                      <div className="flex justify-between mb-2">
+                        <span className="text-xs font-bold text-white flex items-center gap-2">
+                          <div className="w-5 h-5 rounded-md flex items-center justify-center text-[8px]" style={{ backgroundColor: ac(c.author) }}>{ini(c.author)}</div>
+                          {c.author}
+                        </span>
+                        <span className="text-[10px] font-bold text-gray-500 uppercase">{timeAgo(c.created_at)}</span>
+                      </div>
+                      <p className="text-sm text-gray-300 leading-relaxed">{c.content}</p>
+                    </div>
+                  ))
+                )}
               </div>
-            )}
-            <div className="flex gap-2">
-              <input value={commentText} onChange={e => onCommentChange(e.target.value)}
-                placeholder="Write an update…"
-                className="flex-1 bg-agency-bg border border-agency-border text-white text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-agency-accent/50 transition-colors"
-                onKeyDown={e => e.key === 'Enter' && !e.shiftKey && onPostComment()} />
-              <button onClick={onPostComment} disabled={posting || !commentText.trim()}
-                className="px-3 py-2 bg-agency-accent hover:bg-blue-500 disabled:opacity-40 text-white text-xs font-bold rounded-xl transition-colors">
-                {posting ? '…' : 'Post'}
-              </button>
+              <div className="flex gap-3 pt-4 border-t border-agency-border/50">
+                <input value={commentText} onChange={e => setCommentText(e.target.value)}
+                  placeholder="Type an update or comment..."
+                  className="flex-1 bg-agency-bg border border-agency-border text-white text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-agency-accent transition-colors"
+                  onKeyDown={e => e.key === 'Enter' && handleComment()} />
+                <button onClick={handleComment} disabled={commentPosting || !commentText.trim()}
+                  className="px-6 py-3 bg-agency-accent hover:bg-blue-500 disabled:opacity-40 text-white text-sm font-bold rounded-xl transition-colors shadow-[0_0_15px_rgba(59,130,246,0.3)]">
+                  Post
+                </button>
+              </div>
             </div>
-          </div>
+          )}
+
+          {activeTab === 'log time' && (
+            <div className="max-w-md mx-auto text-center py-6">
+               <div className="mb-6 opacity-80">
+                 <p className="text-5xl mb-4">⏱</p>
+                 <h3 className="text-sm font-bold text-white mb-2">Log Hours for this Task</h3>
+                 <p className="text-xs text-gray-400">Quickly add time against this task to update your timesheet and project burn.</p>
+               </div>
+               <button onClick={onLogTime} className="w-full py-4 bg-agency-accent/10 border-2 border-agency-accent rounded-xl text-agency-accent font-bold hover:bg-agency-accent hover:text-white transition-all shadow-[0_0_15px_rgba(59,130,246,0.2)]">
+                 Open Time Logger
+               </button>
+            </div>
+          )}
+
+          {activeTab === 'issues' && (
+            <div className="max-w-md mx-auto text-center py-6">
+               <div className="mb-6 opacity-80">
+                 <p className="text-5xl mb-4">🚨</p>
+                 <h3 className="text-sm font-bold text-red-400 mb-2">Raise an Open Point</h3>
+                 <p className="text-xs text-gray-400">Is this task blocked or requires project manager attention? Discuss it in the project's open points.</p>
+               </div>
+               <button onClick={() => alert("Please coordinate with your Project Manager or log it in the Admin Project Setup screen.")} className="w-full py-4 bg-red-500/10 border border-red-500/30 text-red-400 font-bold rounded-xl hover:bg-red-500/20 transition-all">
+                 Acknowledge & Escalate
+               </button>
+            </div>
+          )}
+
         </div>
-      )}
+      </div>
+      <style>{`
+        @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
+      `}</style>
     </div>
   )
 }
@@ -222,11 +329,7 @@ export default function WorkBoard() {
   const [loading, setLoading] = useState(true)
 
   const [filterProject, setFilterProject] = useState('all')
-  const [expandedTask, setExpandedTask] = useState(null)
-  
-  const [commentText, setCommentText] = useState('')
-  const [postingComment, setPostingComment] = useState(false)
-  const [updatingTask, setUpdatingTask] = useState(null)
+  const [activeTask, setActiveTask] = useState(null) // Controls the detail modal
   
   const [mood, setMood] = useState('')
   const [timeTask, setTimeTask] = useState(null)
@@ -290,32 +393,27 @@ export default function WorkBoard() {
     setSelectedMember(m)
     localStorage.setItem('agency_workboard_member', m.name)
     setFilterProject('all')
-    setExpandedTask(null)
+    setActiveTask(null)
     setMood('')
   }
 
   async function handleStatus(taskId, newStatus) {
-    setUpdatingTask(taskId)
     const { error } = await supabase.from('tasks').update({ status: newStatus }).eq('id', taskId)
-    setUpdatingTask(null)
-    if (error) alert(error.message)
-    else {
+    if (error) {
+      alert(error.message)
+    } else {
       setTasks(tasks.map(t => t.id === taskId ? { ...t, status: newStatus } : t))
-      if (newStatus === 'Done') setExpandedTask(null)
+      if (activeTask && activeTask.id === taskId) {
+        setActiveTask({ ...activeTask, status: newStatus })
+      }
     }
   }
 
-  async function handlePostComment(taskId) {
-    if (!commentText.trim()) return
-    setPostingComment(true)
-    const obj = { task_id: taskId, author: selectedMember.name, content: commentText.trim() }
+  async function handlePostComment(taskId, commentText) {
+    const obj = { task_id: taskId, author: selectedMember.name, content: commentText }
     const { data, error } = await supabase.from('comments').insert([obj]).select()
-    setPostingComment(false)
     if (error) alert(error.message)
-    else {
-      setCommentText('')
-      setComments([...comments, data[0]])
-    }
+    else setComments([...comments, data[0]])
   }
 
   if (!selectedMember) {
@@ -332,7 +430,7 @@ export default function WorkBoard() {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 max-w-4xl w-full">
             {teamMembers.map(m => (
               <button key={m.id || m.name} onClick={() => handleSelectMember(m)}
-                className="bg-agency-card border border-agency-border hover:border-agency-accent/50 rounded-xl p-4 flex items-center gap-3 transition-all group">
+                className="bg-agency-card border border-agency-border hover:border-agency-accent/50 rounded-xl p-4 flex items-center gap-3 transition-all group shadow-sm hover:shadow-md">
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-extrabold text-white flex-shrink-0" style={{ backgroundColor: ac(m.name) }}>{ini(m.name)}</div>
                 <div className="text-left min-w-0">
                   <p className="text-sm font-bold text-white truncate group-hover:text-agency-accent transition-colors">{m.name}</p>
@@ -365,7 +463,7 @@ export default function WorkBoard() {
   const leftToday = doToday.length
 
   return (
-    <div className="h-full flex flex-col bg-agency-bg overflow-hidden">
+    <div className="h-full flex flex-col bg-agency-bg overflow-hidden relative">
       {/* ── Topbar ── */}
       <div className="px-6 py-4 border-b border-agency-border bg-agency-card flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-4">
@@ -391,12 +489,12 @@ export default function WorkBoard() {
             <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Filter Project</p>
             <div className="flex flex-wrap gap-2">
               <button onClick={() => setFilterProject('all')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${filterProject === 'all' ? 'bg-agency-accent border-agency-accent text-white' : 'bg-agency-card border-agency-border text-gray-400 hover:text-white'}`}>
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${filterProject === 'all' ? 'bg-agency-accent border-agency-accent text-white shadow-[0_0_10px_rgba(59,130,246,0.3)]' : 'bg-agency-card border-agency-border text-gray-400 hover:text-white'}`}>
                 All Projects
               </button>
               {projects.map(p => (
                 <button key={p.id} onClick={() => setFilterProject(p.id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${filterProject === p.id ? 'bg-agency-accent border-agency-accent text-white' : 'bg-agency-card border-agency-border text-gray-400 hover:text-white truncate max-w-[150px]'}`}>
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${filterProject === p.id ? 'bg-agency-accent border-agency-accent text-white shadow-[0_0_10px_rgba(59,130,246,0.3)]' : 'bg-agency-card border-agency-border text-gray-400 hover:text-white truncate max-w-[150px]'}`}>
                   {p.name}
                 </button>
               ))}
@@ -405,11 +503,11 @@ export default function WorkBoard() {
             <div className="mt-2">
                <input value={mood} onChange={e => setMood(e.target.value)}
                 placeholder="What's the focus for today?"
-                className="w-full max-w-md bg-agency-bg border border-agency-border text-white text-xs rounded-xl px-4 py-2 focus:outline-none focus:border-agency-accent/50 transition-colors placeholder-gray-600 italic" />
+                className="w-full max-w-md bg-agency-card border border-agency-border text-white text-xs rounded-xl px-4 py-2.5 focus:outline-none focus:border-agency-accent/50 transition-colors placeholder-gray-600 italic shadow-sm" />
             </div>
           </div>
 
-          <div className="lg:w-80 flex-shrink-0 bg-agency-card border border-agency-border rounded-2xl p-4 flex gap-4">
+          <div className="lg:w-80 flex-shrink-0 bg-agency-card border border-agency-border rounded-2xl p-4 flex gap-4 shadow-sm">
             <div className="flex-1 text-center">
               <p className="text-3xl font-extrabold text-[#8b5cf6]">{hrsToday}h</p>
               <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mt-1">Logged Today</p>
@@ -434,18 +532,10 @@ export default function WorkBoard() {
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between pb-2 border-b border-agency-border">
               <h3 className="text-sm font-extrabold text-white flex items-center gap-2"><span className="text-[#f59e0b]">🔥</span> Do Today</h3>
-              <span className="text-xs font-bold text-gray-500 bg-agency-card px-2 py-0.5 rounded-md">{doToday.length}</span>
+              <span className="text-xs font-bold text-gray-500 bg-agency-card border border-agency-border px-2 py-0.5 rounded-md">{doToday.length}</span>
             </div>
             <div className="flex flex-col gap-3">
-              {doToday.map(t => (
-                <MemberTaskCard key={t.id} task={t} 
-                  expanded={expandedTask === t.id} onToggle={() => setExpandedTask(expandedTask === t.id ? null : t.id)}
-                  comments={comments.filter(c => c.task_id === t.id)} commentText={expandedTask === t.id ? commentText : ''}
-                  onCommentChange={setCommentText} onPostComment={() => handlePostComment(t.id)} posting={postingComment}
-                  updating={updatingTask === t.id} onStatusChange={s => handleStatus(t.id, s)}
-                  onLogTime={(e) => { e.stopPropagation(); setTimeTask(t) }}
-                />
-              ))}
+              {doToday.map(t => <MemberTaskCard key={t.id} task={t} onOpen={() => setActiveTask(t)} />)}
               {doToday.length === 0 && <p className="text-xs text-gray-500 italic p-4 text-center border border-dashed border-agency-border rounded-xl">Nothing critical for today.</p>}
             </div>
           </div>
@@ -454,18 +544,10 @@ export default function WorkBoard() {
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between pb-2 border-b border-agency-border">
               <h3 className="text-sm font-extrabold text-white flex items-center gap-2"><span className="text-[#3b82f6]">📅</span> Up Next</h3>
-              <span className="text-xs font-bold text-gray-500 bg-agency-card px-2 py-0.5 rounded-md">{upNext.length}</span>
+              <span className="text-xs font-bold text-gray-500 bg-agency-card border border-agency-border px-2 py-0.5 rounded-md">{upNext.length}</span>
             </div>
             <div className="flex flex-col gap-3">
-              {upNext.map(t => (
-                <MemberTaskCard key={t.id} task={t} 
-                  expanded={expandedTask === t.id} onToggle={() => setExpandedTask(expandedTask === t.id ? null : t.id)}
-                  comments={comments.filter(c => c.task_id === t.id)} commentText={expandedTask === t.id ? commentText : ''}
-                  onCommentChange={setCommentText} onPostComment={() => handlePostComment(t.id)} posting={postingComment}
-                  updating={updatingTask === t.id} onStatusChange={s => handleStatus(t.id, s)}
-                  onLogTime={(e) => { e.stopPropagation(); setTimeTask(t) }}
-                />
-              ))}
+              {upNext.map(t => <MemberTaskCard key={t.id} task={t} onOpen={() => setActiveTask(t)} />)}
             </div>
           </div>
 
@@ -473,44 +555,46 @@ export default function WorkBoard() {
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between pb-2 border-b border-agency-border">
               <h3 className="text-sm font-extrabold text-white flex items-center gap-2"><span className="text-[#8b5cf6]">👀</span> In Review</h3>
-              <span className="text-xs font-bold text-gray-500 bg-agency-card px-2 py-0.5 rounded-md">{inReview.length}</span>
+              <span className="text-xs font-bold text-gray-500 bg-agency-card border border-agency-border px-2 py-0.5 rounded-md">{inReview.length}</span>
             </div>
             <div className="flex flex-col gap-3">
-              {inReview.map(t => (
-                <MemberTaskCard key={t.id} task={t} 
-                  expanded={expandedTask === t.id} onToggle={() => setExpandedTask(expandedTask === t.id ? null : t.id)}
-                  comments={comments.filter(c => c.task_id === t.id)} commentText={expandedTask === t.id ? commentText : ''}
-                  onCommentChange={setCommentText} onPostComment={() => handlePostComment(t.id)} posting={postingComment}
-                  updating={updatingTask === t.id} onStatusChange={s => handleStatus(t.id, s)}
-                  onLogTime={(e) => { e.stopPropagation(); setTimeTask(t) }}
-                />
-              ))}
+              {inReview.map(t => <MemberTaskCard key={t.id} task={t} onOpen={() => setActiveTask(t)} />)}
             </div>
           </div>
 
           {/* Column 4: Done This Week */}
-          <div className="flex flex-col gap-3 opacity-60 hover:opacity-100 transition-opacity">
+          <div className="flex flex-col gap-3 opacity-80 hover:opacity-100 transition-opacity">
             <div className="flex items-center justify-between pb-2 border-b border-agency-border">
-              <h3 className="text-sm font-extrabold text-white flex items-center gap-2"><span className="text-[#22c55e]">✓</span> Done (This Week)</h3>
-              <span className="text-xs font-bold text-gray-500 bg-agency-card px-2 py-0.5 rounded-md">{doneTasks.length}</span>
+              <h3 className="text-sm font-extrabold text-white flex items-center gap-2"><span className="text-[#22c55e]">✓</span> Done</h3>
+              <span className="text-xs font-bold text-gray-500 bg-agency-card border border-agency-border px-2 py-0.5 rounded-md">{doneTasks.length}</span>
             </div>
             <div className="flex flex-col gap-3">
-              {doneTasks.map(t => (
-                <MemberTaskCard key={t.id} task={t} 
-                  expanded={expandedTask === t.id} onToggle={() => setExpandedTask(expandedTask === t.id ? null : t.id)}
-                  comments={comments.filter(c => c.task_id === t.id)} commentText={expandedTask === t.id ? commentText : ''}
-                  onCommentChange={setCommentText} onPostComment={() => handlePostComment(t.id)} posting={postingComment}
-                  updating={updatingTask === t.id} onStatusChange={s => handleStatus(t.id, s)}
-                  onLogTime={(e) => { e.stopPropagation(); setTimeTask(t) }}
-                />
-              ))}
+              {doneTasks.map(t => <MemberTaskCard key={t.id} task={t} onOpen={() => setActiveTask(t)} />)}
             </div>
           </div>
 
         </div>
       </div>
 
-      {timeTask && <QuickLogModal task={timeTask} memberName={selectedMember.name} onClose={() => setTimeTask(null)} onLogged={() => { setTimeTask(null); fetchData() }} />}
+      {activeTask && (
+        <TaskDetailModal 
+          task={activeTask} 
+          comments={comments.filter(c => c.task_id === activeTask.id)}
+          onUpdateStatus={handleStatus}
+          onPostComment={handlePostComment}
+          onLogTime={() => setTimeTask(activeTask)}
+          onClose={() => setActiveTask(null)}
+        />
+      )}
+
+      {timeTask && (
+        <QuickLogModal 
+          task={timeTask} 
+          memberName={selectedMember.name} 
+          onClose={() => setTimeTask(null)} 
+          onLogged={() => { setTimeTask(null); fetchData() }} 
+        />
+      )}
     </div>
   )
 }
