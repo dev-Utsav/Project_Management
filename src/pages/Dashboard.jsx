@@ -97,32 +97,31 @@ export default function Dashboard({ onNavigateToProject }) {
   const [loading, setLoading] = useState(true)
   const [leftTab, setLeftTab] = useState('pulse')
   const [rightTab, setRightTab] = useState('utilization')
+  const [leftHovered, setLeftHovered] = useState(false)
+  const [rightHovered, setRightHovered] = useState(false)
 
   useEffect(() => { fetchAll() }, [])
 
-  // Auto-rotate left tab panel every 8s (resets timer on manual click)
+  // Synchronized auto-rotation interval of 2 seconds, paused when hovered
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setLeftTab(prev => {
-        if (prev === 'pulse') return 'portfolio'
-        if (prev === 'portfolio') return 'activity'
-        return 'pulse'
-      })
-    }, 8000)
-    return () => clearTimeout(timer)
-  }, [leftTab])
-
-  // Auto-rotate right tab panel every 8s (resets timer on manual click)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setRightTab(prev => {
-        if (prev === 'utilization') return 'risks'
-        if (prev === 'risks') return 'milestones'
-        return 'utilization'
-      })
-    }, 8000)
-    return () => clearTimeout(timer)
-  }, [rightTab])
+    const timer = setInterval(() => {
+      if (!leftHovered) {
+        setLeftTab(prev => {
+          if (prev === 'pulse') return 'portfolio'
+          if (prev === 'portfolio') return 'activity'
+          return 'pulse'
+        })
+      }
+      if (!rightHovered) {
+        setRightTab(prev => {
+          if (prev === 'utilization') return 'risks'
+          if (prev === 'risks') return 'milestones'
+          return 'utilization'
+        })
+      }
+    }, 2000)
+    return () => clearInterval(timer)
+  }, [leftHovered, rightHovered])
   async function fetchAll() {
     const [pRes, tRes, tsRes, tmRes, mRes, opRes, spRes] = await Promise.all([
       supabase.from('projects').select('*'),
@@ -371,7 +370,12 @@ export default function Dashboard({ onNavigateToProject }) {
       <div className="flex flex-col lg:flex-row gap-6 min-h-[480px]">
         
         {/* Left Interactive Panel */}
-        <div className="flex-[2] bg-agency-card border border-agency-border rounded-2xl p-6 flex flex-col animate-[fadeInUp_0.5s_ease_backwards]" style={{ animationDelay: '200ms' }}>
+        <div 
+          onMouseEnter={() => setLeftHovered(true)} 
+          onMouseLeave={() => setLeftHovered(false)}
+          className="flex-[2] bg-agency-card border border-agency-border rounded-2xl p-6 flex flex-col animate-[fadeInUp_0.5s_ease_backwards]" 
+          style={{ animationDelay: '200ms' }}
+        >
           {/* Tabs */}
           <div className="flex justify-between items-center mb-5 flex-shrink-0 border-b border-agency-border/50 pb-3">
             <div className="flex gap-4">
@@ -404,63 +408,70 @@ export default function Dashboard({ onNavigateToProject }) {
 
           {/* Content */}
           <div className="flex-1 min-h-0 overflow-y-auto pr-1">
-            {leftTab === 'pulse' && (
-              <div className="h-full flex flex-col justify-end min-h-[300px]">
-                <VerticalBarChart data={weeks} />
-              </div>
-            )}
-            {leftTab === 'portfolio' && (
-              <div className="space-y-3">
-                {projects.map(p => {
-                  const pTasks = tasks.filter(t => t.project_id === p.id)
-                  const doneTasks = pTasks.filter(t => t.status?.toLowerCase() === 'done').length
-                  const taskPct = pTasks.length ? Math.round((doneTasks/pTasks.length)*100) : 0
-                  
-                  const pHours = timesheets.filter(t => t.project_id === p.id).reduce((s,e) => s + (e.hours||0), 0)
-                  const est = p.estimated_hours || 0
-                  const burnPct = est ? Math.min(Math.round((pHours/est)*100), 100) : 0
-                  
-                  const days = daysLeft(p.go_live_date)
-                  const ragColor = { green: '#22c55e', amber: '#f59e0b', red: '#ef4444' }[p.rag_status] || '#22c55e'
+            <div key={leftTab} className="tab-content-active h-full flex flex-col min-h-0">
+              {leftTab === 'pulse' && (
+                <div className="h-full flex flex-col justify-end min-h-[300px]">
+                  <VerticalBarChart data={weeks} />
+                </div>
+              )}
+              {leftTab === 'portfolio' && (
+                <div className="space-y-3">
+                  {projects.map(p => {
+                    const pTasks = tasks.filter(t => t.project_id === p.id)
+                    const doneTasks = pTasks.filter(t => t.status?.toLowerCase() === 'done').length
+                    const taskPct = pTasks.length ? Math.round((doneTasks/pTasks.length)*100) : 0
+                    
+                    const pHours = timesheets.filter(t => t.project_id === p.id).reduce((s,e) => s + (e.hours||0), 0)
+                    const est = p.estimated_hours || 0
+                    const burnPct = est ? Math.min(Math.round((pHours/est)*100), 100) : 0
+                    
+                    const days = daysLeft(p.go_live_date)
+                    const ragColor = { green: '#22c55e', amber: '#f59e0b', red: '#ef4444' }[p.rag_status] || '#22c55e'
 
-                  return (
-                    <div key={p.id} onClick={() => onNavigateToProject(p.id)} className="flex items-center gap-6 p-4 bg-agency-bg border border-agency-border rounded-xl hover:border-agency-accent/40 cursor-pointer transition-colors group">
-                      <div className="w-1/3 flex items-center gap-3">
-                        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: ragColor, boxShadow: `0 0 8px ${ragColor}` }} />
-                        <div className="min-w-0">
-                          <h3 className="text-sm font-bold text-white group-hover:text-agency-accent transition-colors truncate">{p.name}</h3>
-                          <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider truncate">{p.client}</p>
+                    return (
+                      <div key={p.id} onClick={() => onNavigateToProject(p.id)} className="flex items-center gap-6 p-4 bg-agency-bg border border-agency-border rounded-xl hover:border-agency-accent/40 cursor-pointer transition-colors group">
+                        <div className="w-1/3 flex items-center gap-3">
+                          <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: ragColor, boxShadow: `0 0 8px ${ragColor}` }} />
+                          <div className="min-w-0">
+                            <h3 className="text-sm font-bold text-white group-hover:text-agency-accent transition-colors truncate">{p.name}</h3>
+                            <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider truncate">{p.client}</p>
+                          </div>
+                        </div>
+                        <div className="w-1/4">
+                          <div className="flex justify-between mb-1.5">
+                            <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Tasks</span>
+                            <span className="text-[10px] text-white font-bold">{taskPct}%</span>
+                          </div>
+                          <Bar pct={taskPct} color={taskPct >= 100 ? '#22c55e' : '#3b82f6'} h={5} />
+                        </div>
+                        <div className="w-1/4">
+                          <div className="flex justify-between mb-1.5">
+                            <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Burn</span>
+                            <span className="text-[10px] text-white font-bold">{est ? `${burnPct}%` : 'N/A'}</span>
+                          </div>
+                          <Bar pct={burnPct} color={burnPct > 90 ? '#ef4444' : burnPct > 70 ? '#f59e0b' : '#8b5cf6'} h={5} />
+                        </div>
+                        <div className="flex-1 text-right">
+                          <p className={`text-xl font-extrabold leading-none ${days < 0 ? 'text-red-400' : 'text-white'}`}>{days !== null ? Math.abs(days) : '—'}</p>
+                          <p className="text-[9px] text-gray-500 font-bold uppercase mt-1 tracking-widest">{days < 0 ? 'days late' : 'days left'}</p>
                         </div>
                       </div>
-                      <div className="w-1/4">
-                        <div className="flex justify-between mb-1.5">
-                          <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Tasks</span>
-                          <span className="text-[10px] text-white font-bold">{taskPct}%</span>
-                        </div>
-                        <Bar pct={taskPct} color={taskPct >= 100 ? '#22c55e' : '#3b82f6'} h={5} />
-                      </div>
-                      <div className="w-1/4">
-                        <div className="flex justify-between mb-1.5">
-                          <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Burn</span>
-                          <span className="text-[10px] text-white font-bold">{est ? `${burnPct}%` : 'N/A'}</span>
-                        </div>
-                        <Bar pct={burnPct} color={burnPct > 90 ? '#ef4444' : burnPct > 70 ? '#f59e0b' : '#8b5cf6'} h={5} />
-                      </div>
-                      <div className="flex-1 text-right">
-                        <p className={`text-xl font-extrabold leading-none ${days < 0 ? 'text-red-400' : 'text-white'}`}>{days !== null ? Math.abs(days) : '—'}</p>
-                        <p className="text-[9px] text-gray-500 font-bold uppercase mt-1 tracking-widest">{days < 0 ? 'days late' : 'days left'}</p>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-            {leftTab === 'activity' && LiveActivityList}
+                    )
+                  })}
+                </div>
+              )}
+              {leftTab === 'activity' && LiveActivityList}
+            </div>
           </div>
         </div>
 
         {/* Right Interactive Panel */}
-        <div className="flex-[1] bg-agency-card border border-agency-border rounded-2xl p-6 flex flex-col animate-[fadeInUp_0.5s_ease_backwards]" style={{ animationDelay: '250ms' }}>
+        <div 
+          onMouseEnter={() => setRightHovered(true)} 
+          onMouseLeave={() => setRightHovered(false)}
+          className="flex-[1] bg-agency-card border border-agency-border rounded-2xl p-6 flex flex-col animate-[fadeInUp_0.5s_ease_backwards]" 
+          style={{ animationDelay: '250ms' }}
+        >
           {/* Tabs */}
           <div className="flex justify-between items-center mb-5 flex-shrink-0 border-b border-agency-border/50 pb-3">
             <div className="flex gap-4">
@@ -487,9 +498,11 @@ export default function Dashboard({ onNavigateToProject }) {
 
           {/* Content */}
           <div className="flex-1 min-h-0 overflow-y-auto pr-1">
-            {rightTab === 'utilization' && TeamUtilList}
-            {rightTab === 'risks' && RisksList}
-            {rightTab === 'milestones' && UpcomingList}
+            <div key={rightTab} className="tab-content-active h-full flex flex-col min-h-0">
+              {rightTab === 'utilization' && TeamUtilList}
+              {rightTab === 'risks' && RisksList}
+              {rightTab === 'milestones' && UpcomingList}
+            </div>
           </div>
         </div>
 
@@ -498,6 +511,13 @@ export default function Dashboard({ onNavigateToProject }) {
       <style>{`
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        @keyframes tabSlideIn {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .tab-content-active {
+          animation: tabSlideIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
       `}</style>
     </div>
   )
