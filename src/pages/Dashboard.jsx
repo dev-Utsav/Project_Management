@@ -363,7 +363,7 @@ export default function Dashboard({ onNavigateToProject }) {
           onMouseEnter={() => setLeftHovered(true)} 
           onMouseLeave={() => setLeftHovered(false)}
           className="relative flex-[2] bg-agency-card border border-agency-border rounded-2xl p-6 flex flex-col animate-[fadeInUp_0.5s_ease_backwards]" 
-          style={{ animationDelay: '200ms' }}
+          style={{ animationDelay: '400ms' }}
         >
           {/* Tracking Timer Dot */}
           <div className={`card-timer-dot ${leftHovered ? 'card-timer-dot-paused' : ''}`} />
@@ -534,7 +534,7 @@ export default function Dashboard({ onNavigateToProject }) {
           box-shadow: 0 0 10px #3b82f6, 0 0 20px #3b82f6;
           z-index: 50;
           pointer-events: none;
-          animation: traceBorder 8s linear infinite;
+          animation: traceBorder 10s linear infinite;
         }
         .card-timer-dot-paused {
           animation-play-state: paused;
