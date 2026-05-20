@@ -99,6 +99,30 @@ export default function Dashboard({ onNavigateToProject }) {
   const [rightTab, setRightTab] = useState('utilization')
 
   useEffect(() => { fetchAll() }, [])
+
+  // Auto-rotate left tab panel every 8s (resets timer on manual click)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLeftTab(prev => {
+        if (prev === 'pulse') return 'portfolio'
+        if (prev === 'portfolio') return 'activity'
+        return 'pulse'
+      })
+    }, 8000)
+    return () => clearTimeout(timer)
+  }, [leftTab])
+
+  // Auto-rotate right tab panel every 8s (resets timer on manual click)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setRightTab(prev => {
+        if (prev === 'utilization') return 'risks'
+        if (prev === 'risks') return 'milestones'
+        return 'utilization'
+      })
+    }, 8000)
+    return () => clearTimeout(timer)
+  }, [rightTab])
   async function fetchAll() {
     const [pRes, tRes, tsRes, tmRes, mRes, opRes, spRes] = await Promise.all([
       supabase.from('projects').select('*'),
