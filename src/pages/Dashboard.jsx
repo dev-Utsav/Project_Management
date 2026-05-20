@@ -102,7 +102,7 @@ export default function Dashboard({ onNavigateToProject }) {
 
   useEffect(() => { fetchAll() }, [])
 
-  // Synchronized auto-rotation interval of 2 seconds, paused when hovered
+  // Synchronized auto-rotation interval of 4 seconds, paused when hovered
   useEffect(() => {
     const timer = setInterval(() => {
       if (!leftHovered) {
@@ -119,7 +119,7 @@ export default function Dashboard({ onNavigateToProject }) {
           return 'utilization'
         })
       }
-    }, 2000)
+    }, 4000)
     return () => clearInterval(timer)
   }, [leftHovered, rightHovered])
   async function fetchAll() {
@@ -534,7 +534,7 @@ export default function Dashboard({ onNavigateToProject }) {
           box-shadow: 0 0 10px #3b82f6, 0 0 20px #3b82f6;
           z-index: 50;
           pointer-events: none;
-          animation: traceBorder 2s linear infinite;
+          animation: traceBorder 4s linear infinite;
         }
         .card-timer-dot-paused {
           animation-play-state: paused;
