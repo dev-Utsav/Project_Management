@@ -43,7 +43,18 @@ export default function App() {
       if (projectRes.data) setProject(mapProject(projectRes.data))
       if (tasksRes.data) setTasks(tasksRes.data.map(mapTask))
       if (timesheetsRes.data) setTimesheets(timesheetsRes.data.map(mapTimesheet))
-      if (teamRes.data) setTeam(teamRes.data.map(mapTeamMember))
+      if (teamRes.data) {
+        const rawTasks = tasksRes.data || []
+        const mappedTeam = teamRes.data.map(m => {
+          const memberTasks = rawTasks.filter(t => t.assignee === m.name && t.status !== 'done' && t.status !== 'Done')
+          const allocated = memberTasks.reduce((sum, t) => sum + (Number(t.estimated_hours) || 0), 0)
+          return {
+            ...mapTeamMember(m),
+            allocated: allocated
+          }
+        })
+        setTeam(mappedTeam)
+      }
     } catch (err) {
       console.error('Error fetching data:', err)
     }
@@ -94,7 +105,7 @@ export default function App() {
       date: t.log_date,
       description: t.description,
       hours: parseFloat(t.hours),
-      billable: t.billable === 'yes',
+      billable: t.billable === 'yes' || t.billable === 'true' || t.billable === true,
       taskType: t.task_type,
       status: t.status,
     }
@@ -166,7 +177,7 @@ export default function App() {
       case 'workboard':
         return <WorkBoard />
       default:
-        return <Dashboard project={project} tasks={tasks} timesheets={timesheets} />
+        return <Dashboard project={project} tasks={tasks} timesheets={timesheets} onNavigateToProject={navigateToProject} />
     }
   }
 

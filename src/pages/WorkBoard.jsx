@@ -106,13 +106,28 @@ function MemberTaskCard({ task, onOpen }) {
   const d    = dl(task.due_date)
   const isDone = task.status === 'Done'
 
+  const handleDragStart = (e) => {
+    e.dataTransfer.setData('text/plain', task.id.toString());
+    e.currentTarget.style.opacity = '0.4';
+  };
+
+  const handleDragEnd = (e) => {
+    e.currentTarget.style.opacity = '1';
+  };
+
   return (
-    <div onClick={onOpen} className={`border rounded-2xl overflow-hidden cursor-pointer shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 ${
-      task.status === 'Blocked'     ? 'border-red-500/30 bg-red-500/5 hover:border-red-500/50' :
-      task.status === 'In Progress' ? 'border-blue-500/20 bg-blue-500/5 hover:border-blue-500/50' :
-      isDone                        ? 'border-agency-border/40 bg-agency-card/30' :
-      'border-agency-border bg-agency-card hover:border-agency-accent/50 hover:bg-agency-bg/50'
-    }`}>
+    <div 
+      onClick={onOpen} 
+      draggable={true}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      className={`border rounded-2xl overflow-hidden cursor-pointer shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 ${
+        task.status === 'Blocked'     ? 'border-red-500/30 bg-red-500/5 hover:border-red-500/50' :
+        task.status === 'In Progress' ? 'border-blue-500/20 bg-blue-500/5 hover:border-blue-500/50' :
+        isDone                        ? 'border-agency-border/40 bg-agency-card/30' :
+        'border-agency-border bg-agency-card hover:border-agency-accent/50 hover:bg-agency-bg/50'
+      }`}
+    >
       <div className="w-full flex flex-col gap-2 p-4 text-left">
         <div className="flex items-start justify-between gap-2">
           <PriorityDot priority={task.priority} />
@@ -333,6 +348,7 @@ export default function WorkBoard() {
   
   const [mood, setMood] = useState('')
   const [timeTask, setTimeTask] = useState(null)
+  const [dragOverColumn, setDragOverColumn] = useState(null)
 
   // 1. Fetch all team members on mount
   useEffect(() => {
@@ -370,11 +386,26 @@ export default function WorkBoard() {
 
   async function fetchData() {
     setLoading(true)
-    const [tRes, pRes, tsRes, cRes] = await Promise.all([
-      supabase.from('tasks').select('*').eq('assignee', selectedMember.name), // Note: using assignee based on existing DB
+    let commentsData = [];
+    try {
+      const cRes = await supabase.from('comments').select('*').order('created_at', { ascending: true })
+      if (!cRes.error) {
+        commentsData = cRes.data || [];
+      } else {
+        console.warn('Comments table not found or error, loading from localStorage:', cRes.error.message);
+        const local = localStorage.getItem('agency_workboard_comments');
+        if (local) commentsData = JSON.parse(local);
+      }
+    } catch (e) {
+      console.warn('Comments fetch failed:', e);
+      const local = localStorage.getItem('agency_workboard_comments');
+      if (local) commentsData = JSON.parse(local);
+    }
+
+    const [tRes, pRes, tsRes] = await Promise.all([
+      supabase.from('tasks').select('*').eq('assignee', selectedMember.name),
       supabase.from('projects').select('id, name'),
-      supabase.from('timesheets').select('*').eq('team_member', selectedMember.name).eq('log_date', today()),
-      supabase.from('comments').select('*').order('created_at', { ascending: true })
+      supabase.from('timesheets').select('*').eq('team_member', selectedMember.name).eq('log_date', today())
     ])
     
     // Map project names to tasks
@@ -385,7 +416,7 @@ export default function WorkBoard() {
     setTasks(enrichedTasks)
     setProjects(pRes.data || [])
     setTimesheets(tsRes.data || [])
-    setComments(cRes.data || [])
+    setComments(commentsData)
     setLoading(false)
   }
 
@@ -409,11 +440,41 @@ export default function WorkBoard() {
     }
   }
 
+  async function handleDrop(e, targetColumn) {
+    e.preventDefault();
+    const taskIdStr = e.dataTransfer.getData('text/plain')
+    if (!taskIdStr) return
+    const taskId = parseInt(taskIdStr)
+    const task = tasks.find(t => t.id === taskId)
+    if (!task) return
+
+    let newStatus = ''
+    if (targetColumn === 'Do Today') {
+      newStatus = 'In Progress'
+    } else if (targetColumn === 'Up Next') {
+      newStatus = 'To Do'
+    } else if (targetColumn === 'In Review') {
+      newStatus = 'Review'
+    } else if (targetColumn === 'Done') {
+      newStatus = 'Done'
+    }
+
+    if (newStatus && task.status !== newStatus) {
+      await handleStatus(taskId, newStatus)
+    }
+  }
+
   async function handlePostComment(taskId, commentText) {
-    const obj = { task_id: taskId, author: selectedMember.name, content: commentText }
-    const { data, error } = await supabase.from('comments').insert([obj]).select()
-    if (error) alert(error.message)
-    else setComments([...comments, data[0]])
+    const obj = { id: Date.now(), task_id: taskId, author: selectedMember.name, content: commentText, created_at: new Date().toISOString() }
+    const { data, error } = await supabase.from('comments').insert([{ task_id: taskId, author: selectedMember.name, content: commentText }]).select()
+    if (error) {
+      console.warn('Failed to insert comment in Supabase, using localStorage:', error.message)
+      const updatedComments = [...comments, obj]
+      setComments(updatedComments)
+      localStorage.setItem('agency_workboard_comments', JSON.stringify(updatedComments))
+    } else {
+      setComments([...comments, data[0]])
+    }
   }
 
   if (!selectedMember) {
@@ -448,14 +509,24 @@ export default function WorkBoard() {
   const filteredTasks = filterProject === 'all' ? tasks : tasks.filter(t => t.project_id === filterProject)
   
   // Categorise Tasks
-  const now = new Date()
   const todayStr = today()
-  const weekStart = new Date(now.setDate(now.getDate() - now.getDay())).toISOString().slice(0, 10)
 
-  const doToday = filteredTasks.filter(t => (t.due_date && t.due_date <= todayStr) && ['To Do', 'In Progress'].includes(t.status))
-  const upNext  = filteredTasks.filter(t => (!t.due_date || t.due_date > todayStr) && t.status === 'To Do').sort((a,b) => new Date(a.due_date||'9999-12-31') - new Date(b.due_date||'9999-12-31'))
+  // Do Today: Anything currently active (In Progress, Blocked) OR To Do tasks that are due today or earlier
+  const doToday = filteredTasks.filter(t => 
+    ['In Progress', 'Blocked'].includes(t.status) || 
+    (t.status === 'To Do' && t.due_date && t.due_date <= todayStr)
+  )
+  
+  // Up Next: To Do tasks that are due later or have no due date
+  const upNext  = filteredTasks.filter(t => 
+    t.status === 'To Do' && (!t.due_date || t.due_date > todayStr)
+  ).sort((a,b) => new Date(a.due_date||'9999-12-31') - new Date(b.due_date||'9999-12-31'))
+  
   const inReview = filteredTasks.filter(t => t.status === 'Review')
-  const doneTasks = filteredTasks.filter(t => t.status === 'Done' && t.updated_at >= weekStart)
+  
+  // Done Tasks: Show all done tasks, newest first
+  const doneTasks = filteredTasks.filter(t => t.status === 'Done')
+    .sort((a,b) => new Date(b.updated_at||'1970-01-01') - new Date(a.updated_at||'1970-01-01'))
 
   // My Day Summary Data
   const hrsToday = timesheets.reduce((s, e) => s + (e.hours || 0), 0)
@@ -529,7 +600,14 @@ export default function WorkBoard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 flex-1 items-start min-h-0">
           
           {/* Column 1: Do Today */}
-          <div className="flex flex-col gap-3">
+          <div 
+            className={`flex flex-col gap-3 p-2 rounded-xl transition-all duration-200 border-2 ${
+              dragOverColumn === 'Do Today' ? 'border-dashed border-agency-accent/50 bg-agency-accent/5' : 'border-transparent'
+            }`}
+            onDragOver={(e) => { e.preventDefault(); setDragOverColumn('Do Today'); }}
+            onDragLeave={() => setDragOverColumn(null)}
+            onDrop={(e) => { setDragOverColumn(null); handleDrop(e, 'Do Today'); }}
+          >
             <div className="flex items-center justify-between pb-2 border-b border-agency-border">
               <h3 className="text-sm font-extrabold text-white flex items-center gap-2"><span className="text-[#f59e0b]">🔥</span> Do Today</h3>
               <span className="text-xs font-bold text-gray-500 bg-agency-card border border-agency-border px-2 py-0.5 rounded-md">{doToday.length}</span>
@@ -541,35 +619,59 @@ export default function WorkBoard() {
           </div>
 
           {/* Column 2: Up Next */}
-          <div className="flex flex-col gap-3">
+          <div 
+            className={`flex flex-col gap-3 p-2 rounded-xl transition-all duration-200 border-2 ${
+              dragOverColumn === 'Up Next' ? 'border-dashed border-agency-accent/50 bg-agency-accent/5' : 'border-transparent'
+            }`}
+            onDragOver={(e) => { e.preventDefault(); setDragOverColumn('Up Next'); }}
+            onDragLeave={() => setDragOverColumn(null)}
+            onDrop={(e) => { setDragOverColumn(null); handleDrop(e, 'Up Next'); }}
+          >
             <div className="flex items-center justify-between pb-2 border-b border-agency-border">
               <h3 className="text-sm font-extrabold text-white flex items-center gap-2"><span className="text-[#3b82f6]">📅</span> Up Next</h3>
               <span className="text-xs font-bold text-gray-500 bg-agency-card border border-agency-border px-2 py-0.5 rounded-md">{upNext.length}</span>
             </div>
             <div className="flex flex-col gap-3">
               {upNext.map(t => <MemberTaskCard key={t.id} task={t} onOpen={() => setActiveTask(t)} />)}
+              {upNext.length === 0 && <p className="text-xs text-gray-500 italic p-4 text-center border border-dashed border-agency-border rounded-xl">No tasks up next.</p>}
             </div>
           </div>
 
           {/* Column 3: In Review */}
-          <div className="flex flex-col gap-3">
+          <div 
+            className={`flex flex-col gap-3 p-2 rounded-xl transition-all duration-200 border-2 ${
+              dragOverColumn === 'In Review' ? 'border-dashed border-agency-accent/50 bg-agency-accent/5' : 'border-transparent'
+            }`}
+            onDragOver={(e) => { e.preventDefault(); setDragOverColumn('In Review'); }}
+            onDragLeave={() => setDragOverColumn(null)}
+            onDrop={(e) => { setDragOverColumn(null); handleDrop(e, 'In Review'); }}
+          >
             <div className="flex items-center justify-between pb-2 border-b border-agency-border">
               <h3 className="text-sm font-extrabold text-white flex items-center gap-2"><span className="text-[#8b5cf6]">👀</span> In Review</h3>
               <span className="text-xs font-bold text-gray-500 bg-agency-card border border-agency-border px-2 py-0.5 rounded-md">{inReview.length}</span>
             </div>
             <div className="flex flex-col gap-3">
               {inReview.map(t => <MemberTaskCard key={t.id} task={t} onOpen={() => setActiveTask(t)} />)}
+              {inReview.length === 0 && <p className="text-xs text-gray-500 italic p-4 text-center border border-dashed border-agency-border rounded-xl">No tasks in review.</p>}
             </div>
           </div>
 
           {/* Column 4: Done This Week */}
-          <div className="flex flex-col gap-3 opacity-80 hover:opacity-100 transition-opacity">
+          <div 
+            className={`flex flex-col gap-3 p-2 rounded-xl transition-all duration-200 border-2 ${
+              dragOverColumn === 'Done' ? 'border-dashed border-agency-accent/50 bg-agency-accent/5' : 'border-transparent'
+            }`}
+            onDragOver={(e) => { e.preventDefault(); setDragOverColumn('Done'); }}
+            onDragLeave={() => setDragOverColumn(null)}
+            onDrop={(e) => { setDragOverColumn(null); handleDrop(e, 'Done'); }}
+          >
             <div className="flex items-center justify-between pb-2 border-b border-agency-border">
               <h3 className="text-sm font-extrabold text-white flex items-center gap-2"><span className="text-[#22c55e]">✓</span> Done</h3>
               <span className="text-xs font-bold text-gray-500 bg-agency-card border border-agency-border px-2 py-0.5 rounded-md">{doneTasks.length}</span>
             </div>
             <div className="flex flex-col gap-3">
               {doneTasks.map(t => <MemberTaskCard key={t.id} task={t} onOpen={() => setActiveTask(t)} />)}
+              {doneTasks.length === 0 && <p className="text-xs text-gray-500 italic p-4 text-center border border-dashed border-agency-border rounded-xl">No tasks done yet.</p>}
             </div>
           </div>
 

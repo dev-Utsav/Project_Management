@@ -394,7 +394,6 @@ function Milestones({ projectId }) {
               )}
               <Pill label={statusLabel[m.status] || 'Upcoming'} color={statusColor[m.status] || 'gray'} />
               <button onClick={() => setEditing({ ...m })} className="opacity-0 group-hover:opacity-100 text-gray-500 hover:text-white text-xs transition-all mr-1">✎</button>
-              <button onClick={() => setEditingMember({ ...m })} className="opacity-0 group-hover:opacity-100 text-gray-500 hover:text-white text-xs transition-all mr-1">✎</button>
             <button onClick={() => remove(m.id)} className="opacity-0 group-hover:opacity-100 text-gray-600 hover:text-red-400 text-xs transition-all">✕</button>
             </div>
           )

@@ -3,6 +3,12 @@ export default function Capacity({ team }) {
   const totalAllocated = team.reduce((acc, curr) => acc + (curr.allocated || 0), 0);
   const overloadedCount = team.filter(t => (t.allocated || 0) > t.capacity).length;
   const availableHours = totalCapacity - totalAllocated;
+  const overloadedMember = team.find(t => (t.allocated || 0) > t.capacity);
+  const helperMember = overloadedMember
+    ? team.find(t => t.id !== overloadedMember.id && (t.allocated || 0) < t.capacity && t.role === overloadedMember.role) ||
+      team.find(t => t.id !== overloadedMember.id && (t.allocated || 0) < t.capacity)
+    : null;
+  const utilPct = totalCapacity > 0 ? Math.round((totalAllocated / totalCapacity) * 100) : 0;
 
   const getBarColor = (allocated, capacity) => {
     const ratio = allocated / capacity;
@@ -77,13 +83,19 @@ export default function Capacity({ team }) {
         <div className="col-span-1 space-y-4">
           <h2 className="text-lg font-medium text-gray-200 mb-2">AI Resource Insights</h2>
           
-          <div className="bg-red-500/10 border border-red-500/20 p-5 rounded-xl shadow-sm">
+          <div className={`${overloadedMember ? 'bg-red-500/10 border-red-500/20' : 'bg-green-500/10 border-green-500/20'} p-5 rounded-xl shadow-sm border`}>
             <div className="flex gap-3 mb-2">
-              <span className="text-red-500">⚠️</span>
-              <span className="font-medium text-red-500">Overload Warning</span>
+              <span className={overloadedMember ? 'text-red-500' : 'text-green-500'}>{overloadedMember ? '⚠️' : '✨'}</span>
+              <span className={`font-medium ${overloadedMember ? 'text-red-500' : 'text-green-500'}`}>
+                {overloadedMember ? 'Overload Warning' : 'Workload Balanced'}
+              </span>
             </div>
-            <p className="text-sm text-red-200/80 leading-relaxed">
-              Mike (Frontend) is allocated for 45h this week. Consider reassigning 5h of "Checkout Optimization" to Sarah who has available capacity.
+            <p className={`text-sm ${overloadedMember ? 'text-red-200/80' : 'text-green-200/80'} leading-relaxed`}>
+              {overloadedMember ? (
+                `${overloadedMember.name} (${overloadedMember.role}) is allocated for ${overloadedMember.allocated}h this week (capacity: ${overloadedMember.capacity}h). Consider reassigning ${overloadedMember.allocated - overloadedMember.capacity}h to ${helperMember ? helperMember.name : 'another member'} who has available capacity.`
+              ) : (
+                'All team members are within their weekly capacity limits. Great workload balance across the board!'
+              )}
             </p>
           </div>
 
@@ -93,7 +105,13 @@ export default function Capacity({ team }) {
               <span className="font-medium text-amber-500">Sprint Risk</span>
             </div>
             <p className="text-sm text-amber-200/80 leading-relaxed">
-              Backend capacity is tight. If the database migration (Est. 12h) runs over, it will block the remaining API tasks.
+              {utilPct > 85 ? (
+                `Overall team utilization is high at ${utilPct}%. Any unexpected task overruns may put the sprint goals at risk.`
+              ) : overloadedCount > 0 ? (
+                `High resource allocation for overloaded team members could result in bottlenecks. Keep an eye on task dependencies.`
+              ) : (
+                'Team capacity is well-distributed. Delivery risks related to resource constraints are currently low.'
+              )}
             </p>
           </div>
 
@@ -103,7 +121,11 @@ export default function Capacity({ team }) {
               <span className="font-medium text-green-500">On Track</span>
             </div>
             <p className="text-sm text-green-200/80 leading-relaxed">
-              Design resources are perfectly balanced this sprint. The UI handoff is scheduled on time.
+              {overloadedCount === 0 ? (
+                'Resource allocations are perfectly aligned with active sprint requirements. Progress remains stable.'
+              ) : (
+                'Minor bottlenecks detected but overall critical path milestones are currently staffed and on track.'
+              )}
             </p>
           </div>
         </div>

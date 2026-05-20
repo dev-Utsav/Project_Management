@@ -31,6 +31,7 @@ function avatarColor(name = '') {
   return colors[Math.abs(h) % colors.length]
 }
 function initials(name = '') { return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) }
+function isBillableVal(b) { return b === true || b === 'yes' || b === 'true' || String(b) === 'true' }
 
 // ─── task type detection ──────────────────────────────────────────────────────
 const TYPE_KEYWORDS = {
@@ -323,7 +324,7 @@ export default function Timesheet() {
 
   // ── derived stats ──────────────────────────────────────────────────────────
   const totalHours    = entries.reduce((s, e) => s + (e.hours || 0), 0)
-  const billableHours = entries.filter(e => e.billable === true || e.billable === 'yes').reduce((s, e) => s + (e.hours || 0), 0)
+  const billableHours = entries.filter(e => isBillableVal(e.billable)).reduce((s, e) => s + (e.hours || 0), 0)
   const uniqueMembers = [...new Set(entries.map(e => e.team_member))].length
   const todayEntries  = entries.filter(e => e.log_date === today())
 
@@ -331,8 +332,8 @@ export default function Timesheet() {
   const displayed = entries.filter(e => {
     const billableMatch =
       filter === 'all' ? true :
-      filter === 'billable' ? (e.billable === true || e.billable === 'yes') :
-      !(e.billable === true || e.billable === 'yes')
+      filter === 'billable' ? isBillableVal(e.billable) :
+      !isBillableVal(e.billable)
     const memberMatch = memberFilter === 'all' || e.team_member === memberFilter
     return billableMatch && memberMatch
   })
@@ -436,7 +437,7 @@ export default function Timesheet() {
               </thead>
               <tbody>
                 {displayed.map((entry, i) => {
-                  const isBillable = entry.billable === true || entry.billable === 'yes'
+                  const isBillable = isBillableVal(entry.billable)
                   return (
                     <tr key={entry.id || `${entry.member}-${entry.log_date}-${i}`} className="border-b border-agency-border/50 hover:bg-agency-bg/30 transition-colors">
                       {/* date */}
@@ -488,7 +489,7 @@ export default function Timesheet() {
                     {formatHours(displayed.reduce((s, e) => s + (e.hours || 0), 0))}
                   </td>
                   <td className="px-4 py-3 text-[11px] text-gray-500">
-                    {formatHours(displayed.filter(e => e.billable === true || e.billable === 'yes').reduce((s, e) => s + (e.hours || 0), 0))} billable
+                    {formatHours(displayed.filter(e => isBillableVal(e.billable)).reduce((s, e) => s + (e.hours || 0), 0))} billable
                   </td>
                 </tr>
               </tfoot>
