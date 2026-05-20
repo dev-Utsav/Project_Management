@@ -187,6 +187,14 @@ export default function App() {
 
   return (
     <div className="relative h-screen w-screen bg-agency-bg font-sans overflow-hidden select-none">
+      {/* Background Dot Grid */}
+      <div className="absolute inset-0 bg-dots pointer-events-none z-0"></div>
+
+      {/* Radial Gradient Glow Orbs */}
+      <div className="absolute top-[-10%] left-[-5%] w-[45vw] h-[45vw] rounded-full bg-blue-500/10 blur-[130px] pointer-events-none z-0 animate-[pulse_8s_ease-in-out_infinite]"></div>
+      <div className="absolute bottom-[-10%] right-[-5%] w-[50vw] h-[50vw] rounded-full bg-purple-500/10 blur-[140px] pointer-events-none z-0 animate-[pulse_10s_ease-in-out_infinite_2s]"></div>
+      <div className="absolute top-[30%] left-[30%] w-[35vw] h-[35vw] rounded-full bg-indigo-500/5 blur-[120px] pointer-events-none z-0"></div>
+
       {/* Floating Modern Header */}
       <Header 
         activePage={activePage} 
@@ -196,7 +204,7 @@ export default function App() {
       />
 
       {/* Main Canvas Area */}
-      <main className="h-full w-full pt-20 overflow-hidden relative">
+      <main className="h-full w-full pt-20 overflow-hidden relative z-10">
         {renderPage()}
       </main>
 

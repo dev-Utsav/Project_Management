@@ -1237,7 +1237,7 @@ function ProjectDetail({ project: initialProject, onBack }) {
   return (
     <div className="h-full flex flex-col bg-agency-bg">
       {/* header & tabs container */}
-      <div className="px-6 pt-6 border-b border-agency-border bg-agency-card flex-shrink-0">
+      <div className="px-6 pt-6 border-b border-agency-border bg-transparent flex-shrink-0">
         <div className="max-w-6xl mx-auto">
           {/* breadcrumb & title */}
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">

@@ -14,9 +14,9 @@ export default function Header({ activePage, setActivePage, openPointsCount }) {
   ];
 
   return (
-    <div className="fixed top-5 left-0 right-0 z-50 px-4 md:px-8 flex justify-center">
+    <div className="fixed top-5 left-0 right-0 z-50 px-4 md:px-8 flex justify-center pointer-events-none">
       {/* Outer Floating Pill (Refined Glassmorphic) */}
-      <div className="bg-[#090b11]/30 backdrop-blur-xl border border-white/[0.08] hover:bg-[#090b11]/45 hover:border-white/15 hover:shadow-[0_12px_40px_rgba(0,0,0,0.6),0_0_20px_rgba(255,255,255,0.02)] rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.5)] transition-all duration-300">
+      <div className="bg-[#090b11]/30 backdrop-blur-xl border border-white/[0.08] hover:bg-[#090b11]/45 hover:border-white/15 hover:shadow-[0_12px_40px_rgba(0,0,0,0.6),0_0_20px_rgba(255,255,255,0.02)] rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.5)] transition-all duration-300 pointer-events-auto">
         <div className="h-12 px-3 flex items-center justify-between md:justify-center gap-4">
           
           {/* Mobile Active Page Label */}
