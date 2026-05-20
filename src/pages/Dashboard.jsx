@@ -205,10 +205,11 @@ export default function Dashboard({ onNavigateToProject }) {
   const upcoming = enrichedMilestones.filter(m => m.status !== 'at_risk' && m.status !== 'done').sort((a, b) => new Date(a.due_date) - new Date(b.due_date)).slice(0, 5)
 
   // Sub-components for Sliders
+  // Sub-components for Sliders
   const TeamUtilList = (
     <div className="flex-1 overflow-y-auto space-y-5 pr-2 w-full">
-      {uniqueTeamAgg.map(m => (
-        <div key={m.name}>
+      {uniqueTeamAgg.map((m, index) => (
+        <div key={m.name} style={{ animationDelay: `${index * 50}ms` }} className="row-animate-entry">
           <div className="flex justify-between text-xs mb-2">
             <span className="font-bold text-gray-300">{m.name}</span>
             <span className="text-gray-500 font-mono">{m.pct}%</span>
@@ -223,9 +224,9 @@ export default function Dashboard({ onNavigateToProject }) {
   )
 
   const LiveActivityList = (
-    <div className="flex-1 overflow-y-auto space-y-3 pr-2 w-full live-activity-container">
+    <div className="flex-1 overflow-y-auto space-y-3 pr-2 w-full">
       {timesheetsWithProject.slice(0, 10).map((ts, i) => (
-        <div key={ts.id} className="flex gap-3 items-center p-3 bg-agency-bg/50 border border-agency-border rounded-xl transition-all hover:bg-agency-bg">
+        <div key={ts.id} style={{ animationDelay: `${i * 50}ms` }} className="row-animate-entry flex gap-3 items-center p-3 bg-agency-bg/50 border border-agency-border rounded-xl transition-all hover:bg-agency-bg">
           <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0" style={{ backgroundColor: ac(ts.team_member), boxShadow: `0 0 12px ${ac(ts.team_member)}60` }}>{ini(ts.team_member)}</div>
           <div className="flex-1 min-w-0">
             <p className="text-xs text-white truncate"><span className="font-bold">{ts.team_member}</span> logged {formatHours(ts.hours)} on {ts.projectName}</p>
@@ -234,31 +235,19 @@ export default function Dashboard({ onNavigateToProject }) {
           <span className="text-[10px] text-gray-600 font-mono flex-shrink-0">{formatDate(ts.log_date)}</span>
         </div>
       ))}
-      <style>{`
-        .live-activity-container > div {
-          animation: pulseFade 4s ease-in-out infinite;
-        }
-        .live-activity-container > div:nth-child(1) { animation-delay: 0s; }
-        .live-activity-container > div:nth-child(2) { animation-delay: 1.5s; }
-        .live-activity-container > div:nth-child(3) { animation-delay: 3s; }
-        @keyframes pulseFade {
-          0%, 100% { border-color: rgba(59,130,246,0.1); background-color: rgba(30,41,59,0.5); }
-          50% { border-color: rgba(59,130,246,0.5); background-color: rgba(59,130,246,0.05); }
-        }
-      `}</style>
     </div>
   )
 
   const RisksList = (
     <div className="flex-1 overflow-y-auto space-y-3 pr-2 w-full">
       {risks.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-full text-center pb-4">
+        <div className="flex flex-col items-center justify-center h-full text-center pb-4 animate-[fadeInUp_0.4s_ease_out_both]">
           <p className="text-4xl mb-3" style={{ animation: 'float 3s ease-in-out infinite' }}>🎯</p>
           <p className="text-green-400 font-extrabold text-sm uppercase tracking-widest">All Clear</p>
           <p className="text-gray-500 text-xs mt-1">No milestones at risk.</p>
         </div>
-      ) : risks.map(r => (
-        <div key={r.id} onClick={() => onNavigateToProject(r.project_id)} className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl cursor-pointer hover:border-red-500/40 hover:bg-red-500/20 transition-all">
+      ) : risks.map((r, index) => (
+        <div key={r.id} onClick={() => onNavigateToProject(r.project_id)} style={{ animationDelay: `${index * 50}ms` }} className="row-animate-entry p-4 bg-red-500/10 border border-red-500/20 rounded-xl cursor-pointer hover:border-red-500/40 hover:bg-red-500/20 transition-all">
           <p className="text-sm font-bold text-red-400 truncate mb-1.5">{r.name}</p>
           <div className="flex justify-between items-center">
             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest truncate">{r.projectName}</p>
@@ -271,8 +260,8 @@ export default function Dashboard({ onNavigateToProject }) {
 
   const UpcomingList = (
     <div className="flex-1 overflow-y-auto space-y-3 pr-2 w-full">
-      {upcoming.map(m => (
-        <div key={m.id} onClick={() => onNavigateToProject(m.project_id)} className="p-4 bg-agency-bg border border-agency-border rounded-xl cursor-pointer hover:border-agency-accent/40 transition-all">
+      {upcoming.map((m, index) => (
+        <div key={m.id} onClick={() => onNavigateToProject(m.project_id)} style={{ animationDelay: `${index * 50}ms` }} className="row-animate-entry p-4 bg-agency-bg border border-agency-border rounded-xl cursor-pointer hover:border-agency-accent/40 transition-all">
           <p className="text-sm font-bold text-white truncate mb-1.5">{m.name}</p>
           <div className="flex justify-between items-center">
             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest truncate">{m.projectName}</p>
@@ -373,9 +362,12 @@ export default function Dashboard({ onNavigateToProject }) {
         <div 
           onMouseEnter={() => setLeftHovered(true)} 
           onMouseLeave={() => setLeftHovered(false)}
-          className="flex-[2] bg-agency-card border border-agency-border rounded-2xl p-6 flex flex-col animate-[fadeInUp_0.5s_ease_backwards]" 
+          className="relative flex-[2] bg-agency-card border border-agency-border rounded-2xl p-6 flex flex-col animate-[fadeInUp_0.5s_ease_backwards]" 
           style={{ animationDelay: '200ms' }}
         >
+          {/* Tracking Timer Dot */}
+          <div className={`card-timer-dot ${leftHovered ? 'card-timer-dot-paused' : ''}`} />
+
           {/* Tabs */}
           <div className="flex justify-between items-center mb-5 flex-shrink-0 border-b border-agency-border/50 pb-3">
             <div className="flex gap-4">
@@ -416,7 +408,7 @@ export default function Dashboard({ onNavigateToProject }) {
               )}
               {leftTab === 'portfolio' && (
                 <div className="space-y-3">
-                  {projects.map(p => {
+                  {projects.map((p, index) => {
                     const pTasks = tasks.filter(t => t.project_id === p.id)
                     const doneTasks = pTasks.filter(t => t.status?.toLowerCase() === 'done').length
                     const taskPct = pTasks.length ? Math.round((doneTasks/pTasks.length)*100) : 0
@@ -429,7 +421,12 @@ export default function Dashboard({ onNavigateToProject }) {
                     const ragColor = { green: '#22c55e', amber: '#f59e0b', red: '#ef4444' }[p.rag_status] || '#22c55e'
 
                     return (
-                      <div key={p.id} onClick={() => onNavigateToProject(p.id)} className="flex items-center gap-6 p-4 bg-agency-bg border border-agency-border rounded-xl hover:border-agency-accent/40 cursor-pointer transition-colors group">
+                      <div 
+                        key={p.id} 
+                        onClick={() => onNavigateToProject(p.id)} 
+                        style={{ animationDelay: `${index * 50}ms` }}
+                        className="row-animate-entry flex items-center gap-6 p-4 bg-agency-bg border border-agency-border rounded-xl hover:border-agency-accent/40 cursor-pointer transition-colors group"
+                      >
                         <div className="w-1/3 flex items-center gap-3">
                           <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: ragColor, boxShadow: `0 0 8px ${ragColor}` }} />
                           <div className="min-w-0">
@@ -469,9 +466,12 @@ export default function Dashboard({ onNavigateToProject }) {
         <div 
           onMouseEnter={() => setRightHovered(true)} 
           onMouseLeave={() => setRightHovered(false)}
-          className="flex-[1] bg-agency-card border border-agency-border rounded-2xl p-6 flex flex-col animate-[fadeInUp_0.5s_ease_backwards]" 
+          className="relative flex-[1] bg-agency-card border border-agency-border rounded-2xl p-6 flex flex-col animate-[fadeInUp_0.5s_ease_backwards]" 
           style={{ animationDelay: '250ms' }}
         >
+          {/* Tracking Timer Dot */}
+          <div className={`card-timer-dot ${rightHovered ? 'card-timer-dot-paused' : ''}`} />
+
           {/* Tabs */}
           <div className="flex justify-between items-center mb-5 flex-shrink-0 border-b border-agency-border/50 pb-3">
             <div className="flex gap-4">
@@ -512,11 +512,42 @@ export default function Dashboard({ onNavigateToProject }) {
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
         @keyframes tabSlideIn {
-          from { opacity: 0; transform: translateY(8px); }
-          to { opacity: 1; transform: translateY(0); }
+          from { opacity: 0; transform: translateX(20px); filter: blur(4px); }
+          to { opacity: 1; transform: translateX(0); filter: blur(0); }
         }
         .tab-content-active {
-          animation: tabSlideIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+          animation: tabSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes traceBorder {
+          0% { top: -3px; left: -3px; }
+          25% { top: -3px; left: calc(100% - 3px); }
+          50% { top: calc(100% - 3px); left: calc(100% - 3px); }
+          75% { top: calc(100% - 3px); left: -3px; }
+          100% { top: -3px; left: -3px; }
+        }
+        .card-timer-dot {
+          position: absolute;
+          width: 8px;
+          height: 8px;
+          border-radius: 9999px;
+          background-color: #3b82f6;
+          box-shadow: 0 0 10px #3b82f6, 0 0 20px #3b82f6;
+          z-index: 50;
+          pointer-events: none;
+          animation: traceBorder 2s linear infinite;
+        }
+        .card-timer-dot-paused {
+          animation-play-state: paused;
+          opacity: 0.25;
+          background-color: #ef4444;
+          box-shadow: 0 0 8px #ef4444;
+        }
+        @keyframes rowEntrance {
+          from { opacity: 0; transform: translateY(12px) scale(0.98); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .row-animate-entry {
+          animation: rowEntrance 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
         }
       `}</style>
     </div>

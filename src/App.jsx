@@ -205,7 +205,9 @@ export default function App() {
 
       {/* Main Canvas Area */}
       <main className="h-full w-full pt-20 overflow-hidden relative z-10">
-        {renderPage()}
+        <div key={activePage} className="page-animate-entry h-full w-full">
+          {renderPage()}
+        </div>
       </main>
 
       {/* Floating Copilot */}
