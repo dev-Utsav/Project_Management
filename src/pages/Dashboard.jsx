@@ -534,7 +534,7 @@ export default function Dashboard({ onNavigateToProject }) {
           box-shadow: 0 0 10px #3b82f6, 0 0 20px #3b82f6;
           z-index: 50;
           pointer-events: none;
-          animation: traceBorder 4s linear infinite;
+          animation: traceBorder 8s linear infinite;
         }
         .card-timer-dot-paused {
           animation-play-state: paused;
