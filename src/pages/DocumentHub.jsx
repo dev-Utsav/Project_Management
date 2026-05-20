@@ -105,7 +105,7 @@ export default function DocumentHub({ project }) {
   const latestDoc = documents[0]
 
   return (
-    <div className="p-8 space-y-8 h-[calc(100vh-64px)] overflow-y-auto">
+    <div className="p-8 space-y-8 h-full overflow-y-auto">
 
       {/* Latest Document */}
       {latestDoc && (
@@ -208,7 +208,7 @@ export default function DocumentHub({ project }) {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredTemplates.map((template) => {
             const saved = documents.filter(d => d.title === template.name)
             return (

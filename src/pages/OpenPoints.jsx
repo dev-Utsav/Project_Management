@@ -33,7 +33,7 @@ const statusLabels = {
   escalated: 'Escalated',
 }
 
-export default function OpenPoints() {
+export default function OpenPoints({ onPointsChanged }) {
   const [points, setPoints] = useState([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
@@ -100,6 +100,7 @@ export default function OpenPoints() {
       setShowModal(false)
       resetForm()
       fetchPoints()
+      if (onPointsChanged) onPointsChanged()
     } catch (e) {
       setError('Failed to save. Please try again.')
     }
@@ -114,6 +115,7 @@ export default function OpenPoints() {
     }
     await supabase.from('open_points').update(updates).eq('id', id)
     fetchPoints()
+    if (onPointsChanged) onPointsChanged()
     if (showDetail?.id === id) setShowDetail(prev => ({ ...prev, status: newStatus, ...updates }))
   }
 
@@ -121,6 +123,7 @@ export default function OpenPoints() {
     await supabase.from('open_points').delete().eq('id', id)
     setShowDetail(null)
     fetchPoints()
+    if (onPointsChanged) onPointsChanged()
   }
 
   function formatDate(d) {
@@ -140,10 +143,10 @@ export default function OpenPoints() {
   const resolvedCount = points.filter(p => p.status === 'resolved').length
 
   return (
-    <div className="p-8 space-y-8 h-[calc(100vh-64px)] overflow-y-auto">
+    <div className="p-8 space-y-8 h-full overflow-y-auto">
 
       {/* Metrics */}
-      <div className="grid grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-agency-card p-6 rounded-xl border border-agency-border">
           <div className="text-gray-400 text-sm mb-2 font-medium">Open Points</div>
           <div className={`text-3xl font-semibold ${openCount > 0 ? 'text-red-400' : 'text-green-500'}`}>{openCount}</div>

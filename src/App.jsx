@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
-import Sidebar from './components/Sidebar'
-import Topbar from './components/Topbar'
+import Header from './components/Header'
 import Dashboard from './pages/Dashboard'
 import Timesheet from './pages/Timesheet'
 // import HealthBoard from './pages/HealthBoard'
@@ -10,16 +9,17 @@ import { supabase } from './lib/supabase'
 import OpenPoints from './pages/OpenPoints'
 import ProjectSetup from './pages/ProjectSetup'
 import WorkBoard from './pages/WorkBoard'
+import AICopilot from './components/AICopilot'
 
 export default function App() {
   const [activePage, setActivePage] = useState('dashboard')
-  const [sidebarWidth, setSidebarWidth] = useState(240)
   const [project, setProject] = useState(null)
   const [tasks, setTasks] = useState([])
   const [timesheets, setTimesheets] = useState([])
   const [team, setTeam] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedProjectId, setSelectedProjectId] = useState(null)
+  const [openPointsCount, setOpenPointsCount] = useState(0)
 
   useEffect(() => {
     fetchAll()
@@ -33,11 +33,12 @@ export default function App() {
   async function fetchAll() {
     setLoading(true)
     try {
-      const [projectRes, tasksRes, timesheetsRes, teamRes] = await Promise.all([
+      const [projectRes, tasksRes, timesheetsRes, teamRes, openPointsRes] = await Promise.all([
         supabase.from('projects').select('*').eq('id', 1).single(),
         supabase.from('tasks').select('*').eq('project_id', 1).order('id', { ascending: false }),
         supabase.from('timesheets').select('*').eq('project_id', 1).order('log_date', { ascending: false }),
         supabase.from('team_members').select('*').eq('project_id', 1).order('id'),
+        supabase.from('open_points').select('*', { count: 'exact', head: true }).eq('project_id', 1).eq('status', 'open')
       ])
 
       if (projectRes.data) setProject(mapProject(projectRes.data))
@@ -54,6 +55,9 @@ export default function App() {
           }
         })
         setTeam(mappedTeam)
+      }
+      if (openPointsRes && openPointsRes.count !== null && openPointsRes.count !== undefined) {
+        setOpenPointsCount(openPointsRes.count)
       }
     } catch (err) {
       console.error('Error fetching data:', err)
@@ -171,25 +175,33 @@ export default function App() {
       case 'documents':
         return <DocumentHub project={project} />
       case 'openpoints':
-        return <OpenPoints />
+        return <OpenPoints onPointsChanged={fetchAll} />
       case 'setup':
         return <ProjectSetup selectedProjectId={selectedProjectId} onClearProject={() => setSelectedProjectId(null)} />
       case 'workboard':
-        return <WorkBoard />
+        return <WorkBoard onRaisePoint={fetchAll} />
       default:
         return <Dashboard project={project} tasks={tasks} timesheets={timesheets} onNavigateToProject={navigateToProject} />
     }
   }
 
   return (
-    <div className="flex h-screen bg-agency-bg font-sans overflow-hidden transition-colors duration-300">
-      <Sidebar activePage={activePage} setActivePage={setActivePage} project={project} width={sidebarWidth} setWidth={setSidebarWidth} />
-      <div className="flex-1 flex flex-col min-w-0">
-        <Topbar activePage={activePage} onRefresh={fetchAll} />
-        <main className="flex-1 bg-agency-bg relative overflow-hidden">
-          {renderPage()}
-        </main>
-      </div>
+    <div className="relative h-screen w-screen bg-agency-bg font-sans overflow-hidden select-none">
+      {/* Floating Modern Header */}
+      <Header 
+        activePage={activePage} 
+        setActivePage={setActivePage} 
+        openPointsCount={openPointsCount} 
+        project={project}
+      />
+
+      {/* Main Canvas Area */}
+      <main className="h-full w-full pt-20 overflow-hidden relative">
+        {renderPage()}
+      </main>
+
+      {/* Floating Copilot */}
+      <AICopilot project={project} tasks={tasks} timesheets={timesheets} team={team} />
     </div>
   )
 }

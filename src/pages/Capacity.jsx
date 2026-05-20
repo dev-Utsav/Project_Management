@@ -18,9 +18,9 @@ export default function Capacity({ team }) {
   };
 
   return (
-    <div className="p-8 space-y-8 h-[calc(100vh-64px)] overflow-y-auto">
+    <div className="p-8 space-y-8 h-full overflow-y-auto">
       {/* Metrics Row */}
-      <div className="grid grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
         <div className="bg-agency-card p-6 rounded-xl border border-agency-border shadow-sm">
           <div className="text-gray-400 text-sm mb-2 font-medium">Total Capacity</div>
           <div className="text-3xl font-semibold text-gray-100">{totalCapacity}h</div>
@@ -41,9 +41,9 @@ export default function Capacity({ team }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Capacity Chart */}
-        <div className="col-span-2 bg-agency-card rounded-xl border border-agency-border p-6 shadow-sm">
+        <div className="lg:col-span-2 bg-agency-card rounded-xl border border-agency-border p-6 shadow-sm">
           <h2 className="text-lg font-medium text-gray-200 mb-6">Team Utilization</h2>
           <div className="space-y-6">
             {team.map((member, idx) => {

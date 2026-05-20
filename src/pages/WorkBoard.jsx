@@ -160,12 +160,18 @@ function MemberTaskCard({ task, onOpen }) {
 }
 
 // ─── Task Detail Modal (Expanded View) ────────────────────────────────────────
-function TaskDetailModal({ task, comments, onUpdateStatus, onPostComment, onLogTime, onClose }) {
+function TaskDetailModal({ task, comments, teamMembers = [], onUpdateStatus, onPostComment, onRaiseOpenPoint, onLogTime, onClose }) {
   const [activeTab, setActiveTab] = useState('overview')
   const [commentText, setCommentText] = useState('')
   const [statusUpdating, setStatusUpdating] = useState(false)
   const [commentPosting, setCommentPosting] = useState(false)
   const isDone = task.status === 'Done'
+
+  const [pointTitle, setPointTitle] = useState(`Blocked: ${task.title}`)
+  const [pointDesc, setPointDesc] = useState('')
+  const [pointResolver, setPointResolver] = useState('')
+  const [pointCategory, setPointCategory] = useState('blocker')
+  const [submittingPoint, setSubmittingPoint] = useState(false)
 
   async function handleStatus(s) {
     setStatusUpdating(true)
@@ -308,15 +314,87 @@ function TaskDetailModal({ task, comments, onUpdateStatus, onPostComment, onLogT
           )}
 
           {activeTab === 'issues' && (
-            <div className="max-w-md mx-auto text-center py-6">
-               <div className="mb-6 opacity-80">
-                 <p className="text-5xl mb-4">🚨</p>
-                 <h3 className="text-sm font-bold text-red-400 mb-2">Raise an Open Point</h3>
-                 <p className="text-xs text-gray-400">Is this task blocked or requires project manager attention? Discuss it in the project's open points.</p>
-               </div>
-               <button onClick={() => alert("Please coordinate with your Project Manager or log it in the Admin Project Setup screen.")} className="w-full py-4 bg-red-500/10 border border-red-500/30 text-red-400 font-bold rounded-xl hover:bg-red-500/20 transition-all">
-                 Acknowledge & Escalate
-               </button>
+            <div className="max-w-md mx-auto space-y-4 py-2 text-left">
+              <div className="text-center mb-4">
+                <p className="text-5xl mb-2">🚨</p>
+                <h3 className="text-sm font-bold text-red-400">Raise an Open Point Blocker</h3>
+                <p className="text-xs text-gray-500 mt-1">If you are stuck on this task, raise a formal blocker and assign it to a resolver.</p>
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-[10px] uppercase font-bold tracking-widest text-gray-500 mb-1">Blocker Title</label>
+                  <input 
+                    type="text" 
+                    value={pointTitle} 
+                    onChange={e => setPointTitle(e.target.value)} 
+                    className="w-full bg-agency-bg border border-agency-border rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-agency-accent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] uppercase font-bold tracking-widest text-gray-500 mb-1">Blocker Category</label>
+                  <select 
+                    value={pointCategory} 
+                    onChange={e => setPointCategory(e.target.value)}
+                    className="w-full bg-agency-bg border border-agency-border rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-agency-accent"
+                  >
+                    <option value="blocker">Blocker (Stops Progress)</option>
+                    <option value="design_issue">Design Clarification</option>
+                    <option value="technical_debt">Technical Debt / Code Review</option>
+                    <option value="client_clarification">Client Feedback Required</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] uppercase font-bold tracking-widest text-gray-500 mb-1">Assign Blocker Resolver</label>
+                  <select 
+                    value={pointResolver} 
+                    onChange={e => setPointResolver(e.target.value)}
+                    className="w-full bg-agency-bg border border-agency-border rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-agency-accent"
+                  >
+                    <option value="">-- Select Resolver --</option>
+                    {teamMembers.map(m => (
+                      <option key={m.id} value={m.name}>{m.name} ({m.role_short || m.role})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] uppercase font-bold tracking-widest text-gray-500 mb-1">Blocker Details / What is needed?</label>
+                  <textarea 
+                    value={pointDesc} 
+                    onChange={e => setPointDesc(e.target.value)} 
+                    placeholder="Describe exactly what is blocking you and what resolution is required..."
+                    rows={3}
+                    className="w-full bg-agency-bg border border-agency-border rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-agency-accent"
+                  />
+                </div>
+
+                <button 
+                  onClick={async () => {
+                    if (!pointResolver) {
+                      alert("Please select a resolver for this blocker.")
+                      return
+                    }
+                    if (!pointDesc.trim()) {
+                      alert("Please provide some details for the blocker.")
+                      return
+                    }
+                    setSubmittingPoint(true)
+                    const success = await onRaiseOpenPoint(pointTitle, pointDesc, pointCategory, pointResolver)
+                    setSubmittingPoint(false)
+                    if (success) {
+                      setPointDesc('')
+                      setPointResolver('')
+                    }
+                  }} 
+                  disabled={submittingPoint}
+                  className="w-full py-3.5 bg-red-500 hover:bg-red-600 disabled:opacity-40 text-white font-bold rounded-xl transition-all shadow-[0_0_15px_rgba(239,68,68,0.2)]"
+                >
+                  {submittingPoint ? 'Raising Blocker...' : 'Raise Blocker & Assign'}
+                </button>
+              </div>
             </div>
           )}
 
@@ -333,7 +411,7 @@ function TaskDetailModal({ task, comments, onUpdateStatus, onPostComment, onLogT
 // ══════════════════════════════════════════════════════════════════════════════
 // ROOT WORKBOARD
 // ══════════════════════════════════════════════════════════════════════════════
-export default function WorkBoard() {
+export default function WorkBoard({ onRaisePoint }) {
   const [teamMembers, setTeamMembers] = useState([])
   const [selectedMember, setSelectedMember] = useState(null)
   
@@ -367,12 +445,6 @@ export default function WorkBoard() {
       }
       setTeamMembers(unique.sort((a,b) => a.name.localeCompare(b.name)))
       
-      // Auto-select based on localStorage
-      const saved = localStorage.getItem('agency_workboard_member')
-      if (saved) {
-        const found = unique.find(u => u.name === saved)
-        if (found) setSelectedMember(found)
-      }
       setLoading(false)
     }
     init()
@@ -477,13 +549,34 @@ export default function WorkBoard() {
     }
   }
 
+  async function handleRaiseOpenPoint(title, description, category, assignedTo) {
+    const { error } = await supabase.from('open_points').insert({
+      project_id: activeTask.project_id || 1,
+      title: title,
+      description: description,
+      category: category,
+      raised_by: selectedMember.name,
+      raised_date: new Date().toISOString().split('T')[0],
+      assigned_to: assignedTo,
+      status: 'open',
+      blocking_what: activeTask.title,
+    })
+    if (error) {
+      alert("Error raising open point: " + error.message)
+      return false
+    } else {
+      if (onRaisePoint) onRaisePoint()
+      return true
+    }
+  }
+
   if (!selectedMember) {
     return (
-      <div className="h-full bg-agency-bg flex flex-col items-center justify-center p-6">
+      <div className="h-full bg-agency-bg flex flex-col items-center justify-center p-6 animate-[fadeIn_0.3s_ease]">
         <div className="text-center mb-8">
-          <p className="text-gray-500 text-sm mb-1 font-bold tracking-widest uppercase">{greet()}</p>
-          <h1 className="text-3xl font-extrabold text-white mb-2 tracking-tight">Work Board</h1>
-          <p className="text-gray-500">Who's viewing? Select your name to see your tasks.</p>
+          <p className="text-agency-accent text-xs mb-2 font-bold tracking-widest uppercase">{greet()}</p>
+          <h1 className="text-4xl font-extrabold text-white mb-3 tracking-tight bg-gradient-to-r from-white via-gray-300 to-gray-500 bg-clip-text text-transparent">Who are you?</h1>
+          <p className="text-gray-400 text-sm max-w-md">Select your profile to view your personalized task board and execution metrics.</p>
         </div>
         {loading ? (
           <div className="w-6 h-6 border-2 border-agency-accent border-t-transparent rounded-full animate-spin" />
@@ -682,8 +775,10 @@ export default function WorkBoard() {
         <TaskDetailModal 
           task={activeTask} 
           comments={comments.filter(c => c.task_id === activeTask.id)}
+          teamMembers={teamMembers}
           onUpdateStatus={handleStatus}
           onPostComment={handlePostComment}
+          onRaiseOpenPoint={handleRaiseOpenPoint}
           onLogTime={() => setTimeTask(activeTask)}
           onClose={() => setActiveTask(null)}
         />

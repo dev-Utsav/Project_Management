@@ -1306,7 +1306,8 @@ function ProjectDetail({ project: initialProject, onBack }) {
           </div>
         )}
         {activeTab === 'roadmap' && (
-          <div className="h-full overflow-y-auto p-6 max-w-6xl mx-auto">
+          <div className="h-full overflow-y-auto p-6 max-w-6xl mx-auto space-y-6">
+            <RoadmapTimeline projectId={project.id} project={project} />
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Epics projectId={project.id} />
               <Milestones projectId={project.id} />
@@ -1357,4 +1358,156 @@ export default function ProjectSetup({ selectedProjectId, onClearProject }) {
   return selected
     ? <ProjectDetail project={selected} onBack={handleBack} />
     : <ProjectList onSelect={setSelected} />
+}
+
+function RoadmapTimeline({ projectId, project }) {
+  const [sprints, setSprints] = useState([])
+  const [milestones, setMilestones] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function load() {
+      setLoading(true)
+      const [sRes, mRes] = await Promise.all([
+        supabase.from('sprints').select('*').eq('project_id', projectId).order('start_date'),
+        supabase.from('milestones').select('*').eq('project_id', projectId).order('due_date')
+      ])
+      setSprints(sRes.data || [])
+      setMilestones(mRes.data || [])
+      setLoading(false)
+    }
+    load()
+  }, [projectId])
+
+  if (loading) return <div className="text-center text-gray-500 py-6">Loading roadmap timeline...</div>
+
+  const today = new Date()
+  let startDate = new Date(today.getTime() - 14 * 24 * 60 * 60 * 1000)
+  let endDate = new Date(today.getTime() + 42 * 24 * 60 * 60 * 1000)
+
+  if (sprints.length > 0) {
+    const sDates = sprints.map(s => new Date(s.start_date)).filter(d => !isNaN(d))
+    const eDates = sprints.map(s => new Date(s.end_date)).filter(d => !isNaN(d))
+    if (sDates.length > 0) startDate = new Date(Math.min(...sDates))
+    if (eDates.length > 0) endDate = new Date(Math.max(...eDates))
+  }
+
+  startDate = new Date(startDate.getTime() - 3 * 24 * 60 * 60 * 1000)
+  endDate = new Date(endDate.getTime() + 3 * 24 * 60 * 60 * 1000)
+
+  const getPercent = (dateStr) => {
+    if (!dateStr) return 0
+    const d = new Date(dateStr)
+    if (isNaN(d)) return 0
+    const pct = ((d - startDate) / (endDate - startDate)) * 100
+    return Math.max(0, Math.min(100, pct))
+  }
+
+  return (
+    <div className="bg-agency-card border border-agency-border rounded-xl p-5 shadow-lg overflow-hidden">
+      <div className="flex justify-between items-center mb-4 pb-2 border-b border-agency-border/50">
+        <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
+          <span>📅</span> Sprint Timeline & Milestones
+        </h3>
+        <span className="text-[10px] bg-agency-accent/10 border border-agency-accent/30 text-agency-accent px-2 py-0.5 rounded-full font-bold uppercase">
+          Interactive Gantt
+        </span>
+      </div>
+
+      <div className="relative min-h-[220px] overflow-x-auto min-w-[700px] select-none py-4">
+        {/* Timeline background lines / week markers */}
+        <div className="absolute inset-0 flex justify-between pointer-events-none opacity-5">
+          {Array.from({ length: 6 }).map((_, idx) => (
+            <div key={idx} className="h-full w-px bg-white border-dashed border-r" />
+          ))}
+        </div>
+
+        {/* Current day indicator */}
+        {getPercent(today) > 0 && getPercent(today) < 100 && (
+          <div 
+            className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-10"
+            style={{ left: `${getPercent(today)}%` }}
+          >
+            <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-red-500 text-[8px] text-white px-1 rounded font-bold uppercase">Today</span>
+          </div>
+        )}
+
+        {/* Sprints Layer */}
+        <div className="space-y-3 relative z-20">
+          <p className="text-[9px] uppercase font-bold tracking-widest text-gray-500 mb-1">Sprints</p>
+          {sprints.map((s, idx) => {
+            const startPct = getPercent(s.start_date)
+            const endPct = getPercent(s.end_date)
+            const widthPct = Math.max(5, endPct - startPct)
+            const isCurrent = s.status === 'active'
+
+            return (
+              <div key={s.id} className="relative h-9">
+                <div 
+                  className={`absolute h-8 rounded-lg flex items-center px-3 border transition-all duration-300 group hover:shadow-lg ${
+                    isCurrent 
+                      ? 'bg-blue-500/10 border-blue-500 text-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.15)]' 
+                      : s.status === 'completed'
+                      ? 'bg-green-500/5 border-green-500/30 text-green-500'
+                      : 'bg-[#161c2c] border-agency-border text-gray-400 hover:border-gray-500'
+                  }`}
+                  style={{ left: `${startPct}%`, width: `${widthPct}%` }}
+                >
+                  <div className="truncate text-xs font-bold w-full">
+                    S{idx+1}: {s.name}
+                  </div>
+                  {/* Tooltip */}
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-agency-card border border-agency-border p-3 rounded-lg shadow-xl text-left z-30 min-w-[200px]">
+                    <p className="text-xs font-extrabold text-white">{s.name}</p>
+                    <p className="text-[10px] text-gray-400 mt-1 font-semibold">Goal: {s.goal || 'No goal set'}</p>
+                    <p className="text-[10px] text-gray-500 mt-1 font-mono">{s.start_date} to {s.end_date}</p>
+                    <span className={`inline-block mt-2 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${
+                      s.status === 'active' ? 'bg-blue-500/20 text-blue-400' : s.status === 'completed' ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'
+                    }`}>{s.status}</span>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+          {sprints.length === 0 && (
+            <p className="text-xs text-gray-600 italic">No sprints logged to display on timeline.</p>
+          )}
+        </div>
+
+        {/* Milestones Layer */}
+        <div className="mt-8 relative z-20">
+          <p className="text-[9px] uppercase font-bold tracking-widest text-gray-500 mb-2">Milestones</p>
+          <div className="relative h-12">
+            {milestones.map((m) => {
+              const duePct = getPercent(m.due_date)
+              const colorMap = { upcoming: 'border-blue-500/50 text-blue-400 bg-blue-500/10', done: 'border-green-500 text-green-400 bg-green-500/10', delayed: 'border-red-500 text-red-400 bg-red-500/10' }
+              const col = colorMap[m.status] || 'border-gray-500 text-gray-400 bg-gray-500/10'
+
+              return (
+                <div 
+                  key={m.id}
+                  className="absolute -translate-x-1/2 flex flex-col items-center group cursor-pointer"
+                  style={{ left: `${duePct}%` }}
+                >
+                  <div className={`w-3 h-3 rounded-full border-2 ${col} transition-transform group-hover:scale-125 z-10`} />
+                  <div className="w-0.5 h-3 bg-agency-border" />
+                  <p className="text-[10px] font-bold text-gray-400 max-w-[80px] text-center truncate">{m.name}</p>
+                  
+                  {/* Tooltip */}
+                  <div className="absolute bottom-full mb-2 hidden group-hover:block bg-agency-card border border-agency-border p-3 rounded-lg shadow-xl text-left z-30 min-w-[180px]">
+                    <p className="text-xs font-extrabold text-white">🚩 {m.name}</p>
+                    <p className="text-[10px] text-gray-400 mt-1 font-semibold">Due: {m.due_date}</p>
+                    <p className="text-[10px] text-gray-500 mt-1 uppercase font-bold tracking-wider font-mono">Status: {m.status}</p>
+                  </div>
+                </div>
+              )
+            })}
+            {milestones.length === 0 && (
+              <p className="text-xs text-gray-600 italic">No milestones logged to display on timeline.</p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 }
