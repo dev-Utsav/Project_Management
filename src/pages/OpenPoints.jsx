@@ -315,10 +315,10 @@ export default function OpenPoints({ onPointsChanged }) {
         </div>
       )}
 
-      {/* Detail Panel */}
+      {/* Detail Popup Modal */}
       {showDetail && (
-        <div className="fixed inset-0 bg-black/60 flex items-end justify-end z-50" onClick={e => e.target === e.currentTarget && setShowDetail(null)}>
-          <div className="bg-agency-card border-l border-agency-border w-full max-w-lg h-full overflow-y-auto p-8 shadow-2xl">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={e => e.target === e.currentTarget && setShowDetail(null)}>
+          <div className="bg-agency-card border border-agency-border w-full max-w-lg rounded-2xl max-h-[90vh] overflow-y-auto p-8 shadow-2xl animate-[fadeIn_0.2s_ease-out]">
             <div className="flex items-start justify-between mb-6">
               <div>
                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border mb-2 ${categoryStyles[showDetail.category]}`}>
