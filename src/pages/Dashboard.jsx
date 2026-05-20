@@ -95,6 +95,8 @@ function AutoSlider({ slides, intervalMs = 8000 }) {
 export default function Dashboard({ onNavigateToProject }) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [leftTab, setLeftTab] = useState('pulse')
+  const [rightTab, setRightTab] = useState('utilization')
 
   useEffect(() => { fetchAll() }, [])
   async function fetchAll() {
@@ -341,90 +343,130 @@ export default function Dashboard({ onNavigateToProject }) {
         </div>
       </div>
 
-      {/* ── MIDDLE ROW ── */}
-      <div className="flex flex-col lg:flex-row gap-6 min-h-[400px]">
+      {/* ── HIGH DENSITY TAB PANELS ── */}
+      <div className="flex flex-col lg:flex-row gap-6 min-h-[480px]">
         
-        {/* Project Portfolio */}
+        {/* Left Interactive Panel */}
         <div className="flex-[2] bg-agency-card border border-agency-border rounded-2xl p-6 flex flex-col animate-[fadeInUp_0.5s_ease_backwards]" style={{ animationDelay: '200ms' }}>
-          <h2 className="text-sm font-extrabold text-white tracking-widest uppercase mb-5">Project Portfolio</h2>
-          <div className="flex-1 overflow-y-auto space-y-3 pr-2">
-            {projects.map(p => {
-              const pTasks = tasks.filter(t => t.project_id === p.id)
-              const doneTasks = pTasks.filter(t => t.status?.toLowerCase() === 'done').length
-              const taskPct = pTasks.length ? Math.round((doneTasks/pTasks.length)*100) : 0
-              
-              const pHours = timesheets.filter(t => t.project_id === p.id).reduce((s,e) => s + (e.hours||0), 0)
-              const est = p.estimated_hours || 0
-              const burnPct = est ? Math.min(Math.round((pHours/est)*100), 100) : 0
-              
-              const days = daysLeft(p.go_live_date)
-              const ragColor = { green: '#22c55e', amber: '#f59e0b', red: '#ef4444' }[p.rag_status] || '#22c55e'
+          {/* Tabs */}
+          <div className="flex justify-between items-center mb-5 flex-shrink-0 border-b border-agency-border/50 pb-3">
+            <div className="flex gap-4">
+              {[
+                { id: 'pulse', label: 'Agency Pulse' },
+                { id: 'portfolio', label: 'Project Portfolio' },
+                { id: 'activity', label: 'Live Activity' }
+              ].map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => setLeftTab(t.id)}
+                  className={`text-xs font-extrabold uppercase tracking-wider transition-colors relative pb-1.5 ${
+                    leftTab === t.id ? 'text-agency-accent' : 'text-gray-500 hover:text-gray-300'
+                  }`}
+                >
+                  {t.label}
+                  {leftTab === t.id && (
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-agency-accent rounded-full shadow-[0_0_8px_rgba(94,106,210,0.6)]" />
+                  )}
+                </button>
+              ))}
+            </div>
+            {leftTab === 'pulse' && (
+              <div className="flex gap-3">
+                <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-blue-500 rounded-sm shadow-[0_0_8px_rgba(59,130,246,0.6)]"/><span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">Tasks</span></div>
+                <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-purple-500 rounded-sm shadow-[0_0_8px_rgba(168,85,247,0.6)]"/><span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">Hours</span></div>
+              </div>
+            )}
+          </div>
 
-              return (
-                <div key={p.id} onClick={() => onNavigateToProject(p.id)} className="flex items-center gap-6 p-4 bg-agency-bg border border-agency-border rounded-xl hover:border-agency-accent/40 cursor-pointer transition-colors group">
+          {/* Content */}
+          <div className="flex-1 min-h-0 overflow-y-auto pr-1">
+            {leftTab === 'pulse' && (
+              <div className="h-full flex flex-col justify-end min-h-[300px]">
+                <VerticalBarChart data={weeks} />
+              </div>
+            )}
+            {leftTab === 'portfolio' && (
+              <div className="space-y-3">
+                {projects.map(p => {
+                  const pTasks = tasks.filter(t => t.project_id === p.id)
+                  const doneTasks = pTasks.filter(t => t.status?.toLowerCase() === 'done').length
+                  const taskPct = pTasks.length ? Math.round((doneTasks/pTasks.length)*100) : 0
                   
-                  <div className="w-1/3 flex items-center gap-3">
-                    <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: ragColor, boxShadow: `0 0 8px ${ragColor}` }} />
-                    <div className="min-w-0">
-                      <h3 className="text-sm font-bold text-white group-hover:text-agency-accent transition-colors truncate">{p.name}</h3>
-                      <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider truncate">{p.client}</p>
+                  const pHours = timesheets.filter(t => t.project_id === p.id).reduce((s,e) => s + (e.hours||0), 0)
+                  const est = p.estimated_hours || 0
+                  const burnPct = est ? Math.min(Math.round((pHours/est)*100), 100) : 0
+                  
+                  const days = daysLeft(p.go_live_date)
+                  const ragColor = { green: '#22c55e', amber: '#f59e0b', red: '#ef4444' }[p.rag_status] || '#22c55e'
+
+                  return (
+                    <div key={p.id} onClick={() => onNavigateToProject(p.id)} className="flex items-center gap-6 p-4 bg-agency-bg border border-agency-border rounded-xl hover:border-agency-accent/40 cursor-pointer transition-colors group">
+                      <div className="w-1/3 flex items-center gap-3">
+                        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: ragColor, boxShadow: `0 0 8px ${ragColor}` }} />
+                        <div className="min-w-0">
+                          <h3 className="text-sm font-bold text-white group-hover:text-agency-accent transition-colors truncate">{p.name}</h3>
+                          <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider truncate">{p.client}</p>
+                        </div>
+                      </div>
+                      <div className="w-1/4">
+                        <div className="flex justify-between mb-1.5">
+                          <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Tasks</span>
+                          <span className="text-[10px] text-white font-bold">{taskPct}%</span>
+                        </div>
+                        <Bar pct={taskPct} color={taskPct >= 100 ? '#22c55e' : '#3b82f6'} h={5} />
+                      </div>
+                      <div className="w-1/4">
+                        <div className="flex justify-between mb-1.5">
+                          <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Burn</span>
+                          <span className="text-[10px] text-white font-bold">{est ? `${burnPct}%` : 'N/A'}</span>
+                        </div>
+                        <Bar pct={burnPct} color={burnPct > 90 ? '#ef4444' : burnPct > 70 ? '#f59e0b' : '#8b5cf6'} h={5} />
+                      </div>
+                      <div className="flex-1 text-right">
+                        <p className={`text-xl font-extrabold leading-none ${days < 0 ? 'text-red-400' : 'text-white'}`}>{days !== null ? Math.abs(days) : '—'}</p>
+                        <p className="text-[9px] text-gray-500 font-bold uppercase mt-1 tracking-widest">{days < 0 ? 'days late' : 'days left'}</p>
+                      </div>
                     </div>
-                  </div>
-
-                  <div className="w-1/4">
-                    <div className="flex justify-between mb-1.5">
-                      <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Tasks</span>
-                      <span className="text-[10px] text-white font-bold">{taskPct}%</span>
-                    </div>
-                    <Bar pct={taskPct} color={taskPct >= 100 ? '#22c55e' : '#3b82f6'} h={5} />
-                  </div>
-
-                  <div className="w-1/4">
-                    <div className="flex justify-between mb-1.5">
-                      <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Burn</span>
-                      <span className="text-[10px] text-white font-bold">{est ? `${burnPct}%` : 'N/A'}</span>
-                    </div>
-                    <Bar pct={burnPct} color={burnPct > 90 ? '#ef4444' : burnPct > 70 ? '#f59e0b' : '#8b5cf6'} h={5} />
-                  </div>
-
-                  <div className="flex-1 text-right">
-                    <p className={`text-xl font-extrabold leading-none ${days < 0 ? 'text-red-400' : 'text-white'}`}>{days !== null ? Math.abs(days) : '—'}</p>
-                    <p className="text-[9px] text-gray-500 font-bold uppercase mt-1 tracking-widest">{days < 0 ? 'days late' : 'days left'}</p>
-                  </div>
-
-                </div>
-              )
-            })}
+                  )
+                })}
+              </div>
+            )}
+            {leftTab === 'activity' && LiveActivityList}
           </div>
         </div>
 
-        {/* Live Activity & Team Utilization Slider */}
+        {/* Right Interactive Panel */}
         <div className="flex-[1] bg-agency-card border border-agency-border rounded-2xl p-6 flex flex-col animate-[fadeInUp_0.5s_ease_backwards]" style={{ animationDelay: '250ms' }}>
-          <AutoSlider slides={middleRightSlides} intervalMs={7000} />
-        </div>
-
-      </div>
-
-      {/* ── BOTTOM ROW ── */}
-      <div className="flex flex-col lg:flex-row gap-6 mb-6 min-h-[300px]">
-        
-        {/* Velocity Chart */}
-        <div className="flex-[2] bg-agency-card border border-agency-border rounded-2xl p-6 flex flex-col animate-[fadeInUp_0.5s_ease_backwards]" style={{ animationDelay: '300ms' }}>
-          <div className="flex justify-between items-center mb-2 flex-shrink-0">
-            <h2 className="text-sm font-extrabold text-white tracking-widest uppercase">Agency Pulse</h2>
+          {/* Tabs */}
+          <div className="flex justify-between items-center mb-5 flex-shrink-0 border-b border-agency-border/50 pb-3">
             <div className="flex gap-4">
-              <div className="flex items-center gap-2"><div className="w-3 h-3 bg-blue-500 rounded-sm shadow-[0_0_8px_rgba(59,130,246,0.6)]"/><span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Tasks Done</span></div>
-              <div className="flex items-center gap-2"><div className="w-3 h-3 bg-purple-500 rounded-sm shadow-[0_0_8px_rgba(168,85,247,0.6)]"/><span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Hours Logged</span></div>
+              {[
+                { id: 'utilization', label: 'Team Utilization' },
+                { id: 'risks', label: 'Top Risks' },
+                { id: 'milestones', label: 'Milestones' }
+              ].map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => setRightTab(t.id)}
+                  className={`text-xs font-extrabold uppercase tracking-wider transition-colors relative pb-1.5 ${
+                    rightTab === t.id ? 'text-agency-accent' : 'text-gray-500 hover:text-gray-300'
+                  }`}
+                >
+                  {t.label}
+                  {rightTab === t.id && (
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-agency-accent rounded-full shadow-[0_0_8px_rgba(94,106,210,0.6)]" />
+                  )}
+                </button>
+              ))}
             </div>
           </div>
-          <div className="flex-1 flex flex-col justify-end min-h-0">
-            <VerticalBarChart data={weeks} />
-          </div>
-        </div>
 
-        {/* Top Risks & Upcoming Slider */}
-        <div className="flex-[1] bg-agency-card border border-agency-border rounded-2xl p-6 flex flex-col animate-[fadeInUp_0.5s_ease_backwards]" style={{ animationDelay: '350ms' }}>
-          <AutoSlider slides={bottomRightSlides} intervalMs={6000} />
+          {/* Content */}
+          <div className="flex-1 min-h-0 overflow-y-auto pr-1">
+            {rightTab === 'utilization' && TeamUtilList}
+            {rightTab === 'risks' && RisksList}
+            {rightTab === 'milestones' && UpcomingList}
+          </div>
         </div>
 
       </div>
